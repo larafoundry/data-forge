@@ -1,0 +1,34 @@
+{
+  "name": "ws/data-bridge",
+  "type": "composer-plugin",
+  "version": "1.0.0",
+  "require": {
+    "php": "^8.1"
+  },
+  "keywords": [
+    "data",
+    "bridge",
+    "ws"
+  ],
+  "license": "MIT",
+  "autoload": {
+    "psr-4": {
+      "Ws\\DataBridge\\": "src/"
+    }
+  },
+  "authors": [
+    {
+      "name": "trungdev05",
+      "email": "nguyentrung.ws.555@gmail.com"
+    }
+  ],
+  "scripts": {
+    "pint": "vendor/bin/pint",
+    "phpstan": "vendor/bin/phpstan"
+  },
+  "minimum-stability": "stable",
+  "require-dev": {
+    "laravel/pint": "^1.22",
+    "phpstan/phpstan": "^2.1"
+  }
+}
