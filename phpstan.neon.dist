@@ -1,0 +1,10 @@
+parameters:
+
+    paths:
+        - src/
+
+    level: 10
+
+#    ignoreErrors:
+#        - '#PHPDoc tag @var#'
+#
