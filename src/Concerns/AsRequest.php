@@ -47,6 +47,11 @@ trait AsRequest
         return $this->request()->has($key);
     }
 
+    public function filled(string|array $key): bool
+    {
+        return $this->request()->filled($key);
+    }
+
     /** @throws BindingResolutionException */
     public function hasAny(array|string $keys): bool
     {
@@ -57,12 +62,6 @@ trait AsRequest
     public function whenHas(string $key, callable $callback, ?callable $default = null): mixed
     {
         return $this->request()->whenHas($key, $callback, $default);
-    }
-
-    /** @throws BindingResolutionException */
-    public function filled(string|array $key): bool
-    {
-        return $this->request()->filled($key);
     }
 
     /** @throws BindingResolutionException */
