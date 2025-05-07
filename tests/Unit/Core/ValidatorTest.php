@@ -6,8 +6,8 @@ namespace Tests\Unit\Core;
 
 use Tests\Unit\Core\Objects\TestDto;
 use Ws\DataBridge\Core\DtoInspector;
-use Ws\DataBridge\Core\ValidationException;
 use Ws\DataBridge\Core\Validator;
+use Ws\DataBridge\Exceptions\ValidationException;
 
 // Define a simple DTO class for testing
 

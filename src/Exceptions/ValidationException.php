@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Ws\DataBridge\Core;
+namespace Ws\DataBridge\Exceptions;
 
 use Exception;
 

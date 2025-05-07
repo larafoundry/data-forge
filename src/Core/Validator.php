@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Ws\DataBridge\Core;
 
+use Ws\DataBridge\Exceptions\ValidationException;
+
 final class Validator
 {
     private array $rules = [];
