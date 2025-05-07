@@ -28,10 +28,9 @@ class ContainerHelper
         $usedKeys = [];
         $constructorArguments = [];
 
-        if ($ref->hasMethod('__construct')) {
-            $ctor = $ref->getConstructor();
+        $ctor = $ref->getConstructor();
+        if ($ctor !== null) {
             $params = $ctor->getParameters();
-
             foreach ($params as $param) {
                 $name = $param->getName();
                 if (array_key_exists($name, $data)) {
