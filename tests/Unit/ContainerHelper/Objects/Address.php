@@ -7,5 +7,6 @@ namespace Tests\Unit\ContainerHelper\Objects;
 class Address
 {
     public string $street;
+
     public string $city;
 }

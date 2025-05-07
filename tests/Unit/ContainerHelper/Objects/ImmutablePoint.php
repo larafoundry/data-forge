@@ -6,7 +6,5 @@ namespace Tests\Unit\ContainerHelper\Objects;
 
 class ImmutablePoint
 {
-    public function __construct(public readonly int $x, public readonly int $y)
-    {
-    }
+    public function __construct(public readonly int $x, public readonly int $y) {}
 }

@@ -6,7 +6,5 @@ namespace Tests\Unit\ContainerHelper\Objects;
 
 class User
 {
-    public function __construct(public string $name, public int $age)
-    {
-    }
+    public function __construct(public string $name, public int $age) {}
 }
