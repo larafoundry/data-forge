@@ -63,6 +63,31 @@ final class DtoInspector
         return $keys;
     }
 
+    /**
+     * @return array<int, string>
+     */
+    public function getRequiredKeys(): array
+    {
+        $required = [];
+
+        $ctor = $this->reflection->getConstructor();
+        if ($ctor !== null) {
+            foreach ($ctor->getParameters() as $param) {
+                if (!self::isParameterOptional($param)) {
+                    $required[] = $param->getName();
+                }
+            }
+        }
+
+        foreach ($this->reflection->getProperties(ReflectionProperty::IS_PUBLIC) as $prop) {
+            if (!self::propertyHasDefault($prop)) {
+                $required[] = $prop->getName();
+            }
+        }
+
+        return array_values(array_unique($required));
+    }
+
     private static function isParameterOptional(ReflectionParameter $param): bool
     {
         if ($param->isDefaultValueAvailable()) {
