@@ -10,7 +10,7 @@ use Attribute;
 final class DateFormat
 {
     public function __construct(
-        public string $format = 'Y-m-d',
-        public ?string $timezone = null,
+        public readonly string $format = 'Y-m-d',
+        public readonly ?string $timezone = null,
     ) {}
 }
