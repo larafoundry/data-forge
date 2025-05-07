@@ -1,14 +1,17 @@
 <?php
 
-declare(strict_types=1);
 /** @noinspection PhpUnhandledExceptionInspection */
+
+declare(strict_types=1);
 
 namespace Tests\Unit;
 
 use InvalidArgumentException;
 use Tests\Unit\ContainerHelper\Objects\Address;
 use Tests\Unit\ContainerHelper\Objects\ImmutablePoint;
+use Tests\Unit\ContainerHelper\Objects\PrivateConstructObject;
 use Tests\Unit\ContainerHelper\Objects\Product;
+use Tests\Unit\ContainerHelper\Objects\ProtectedConstructObject;
 use Tests\Unit\ContainerHelper\Objects\User;
 use TypeError;
 use Ws\DataBridge\Core\ContainerHelper;
@@ -153,4 +156,18 @@ test('throws exception when creating ImmutablePoint with invalid parameters', fu
         'x' => 'invalid',
         'y' => 20,
     ]))->toThrow(TypeError::class);
+});
+
+test('can create object when creating instance with private constructor', function () {
+    $object = ContainerHelper::makeInstance(PrivateConstructObject::class, [
+        'value' => 'test',
+    ]);
+    expect($object->getValue())->toBe('test');
+});
+
+test('can create object when creating instance with protected constructor', function () {
+    $object = ContainerHelper::makeInstance(ProtectedConstructObject::class, [
+        'value' => 'test',
+    ]);
+    expect($object->getValue())->toBe('test');
 });
