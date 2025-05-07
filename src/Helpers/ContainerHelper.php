@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Ws\DataBridge\Helpers;
 
 use InvalidArgumentException;
@@ -10,14 +12,16 @@ class ContainerHelper
 {
     /**
      * @template T
-     * @param class-string<T> $class
-     * @param array<string,mixed> $data
+     *
+     * @param  class-string<T>  $class
+     * @param  array<string,mixed>  $data
      * @return T
+     *
      * @throws InvalidArgumentException|ReflectionException
      */
     public static function makeInstance(string $class, array $data)
     {
-        if (!class_exists($class)) {
+        if (! class_exists($class)) {
             throw new InvalidArgumentException("Class $class not found");
         }
         $ref = new ReflectionClass($class);
@@ -45,7 +49,7 @@ class ContainerHelper
         }
 
         foreach ($data as $key => $value) {
-            if (!in_array($key, $usedKeys) && property_exists($class, $key) && $ref->getProperty($key)->isPublic()) {
+            if (! in_array($key, $usedKeys) && property_exists($class, $key) && $ref->getProperty($key)->isPublic()) {
                 $instance->{$key} = $value;
             }
         }

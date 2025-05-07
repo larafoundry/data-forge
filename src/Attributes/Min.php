@@ -11,7 +11,5 @@ final class Min
 {
     public function __construct(
         public readonly int|float $value
-    )
-    {
-    }
+    ) {}
 }

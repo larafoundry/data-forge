@@ -32,6 +32,7 @@ abstract class DataTransferObject
 
         $dto = new static(...$args);
         self::validateScalarProperties($dto);
+
         return $dto;
     }
 

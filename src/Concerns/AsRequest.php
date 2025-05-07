@@ -17,24 +17,6 @@ trait AsRequest
 {
     protected ?Request $_request = null;
 
-    /**
-     * @throws BindingResolutionException
-     */
-    protected function request(): Request
-    {
-        if ($this->_request === null) {
-            $this->_request = Container::getInstance()->make(Request::class);
-        }
-
-        return $this->_request;
-    }
-
-    /** @throws BindingResolutionException */
-    public function bearerToken(): ?string
-    {
-        return $this->request()->bearerToken();
-    }
-
     /** @throws BindingResolutionException */
     public function exists(string|array $key): bool
     {
@@ -137,13 +119,13 @@ trait AsRequest
     }
 
     /** @throws BindingResolutionException */
-    public function date(string $key, string|null $format = null, string|null $tz = null): Carbon|CarbonImmutable|null
+    public function date(string $key, ?string $format = null, ?string $tz = null): Carbon|CarbonImmutable|null
     {
         return $this->request()->date($key, $format, $tz);
     }
 
     /** @throws BindingResolutionException */
-    public function enum(string $key, string $enumClass): object|null
+    public function enum(string $key, string $enumClass): ?object
     {
         return $this->request()->enum($key, $enumClass);
     }
@@ -188,5 +170,17 @@ trait AsRequest
     public function allFiles(): array
     {
         return $this->request()->allFiles();
+    }
+
+    /**
+     * @throws BindingResolutionException
+     */
+    protected function request(): Request
+    {
+        if ($this->_request === null) {
+            $this->_request = Container::getInstance()->make(Request::class);
+        }
+
+        return $this->_request;
     }
 }
