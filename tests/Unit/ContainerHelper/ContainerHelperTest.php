@@ -1,4 +1,6 @@
 <?php
+
+declare(strict_types=1);
 /** @noinspection PhpUnhandledExceptionInspection */
 
 namespace Tests\Unit;
@@ -12,7 +14,8 @@ use TypeError;
 use Ws\DataBridge\Helpers\ContainerHelper;
 
 test('can create instance with constructor parameters', function () {
-    $class = new class('', 0) {
+    $class = new class('', 0)
+    {
         public function __construct(
             public string $name,
             public int $age
@@ -21,7 +24,7 @@ test('can create instance with constructor parameters', function () {
 
     $instance = ContainerHelper::makeInstance(get_class($class), [
         'name' => 'John',
-        'age' => 30
+        'age' => 30,
     ]);
 
     expect($instance->name)->toBe('John')
@@ -29,14 +32,16 @@ test('can create instance with constructor parameters', function () {
 });
 
 test('can create instance with public properties', function () {
-    $class = new class {
+    $class = new class
+    {
         public string $name;
+
         public int $age;
     };
 
     $instance = ContainerHelper::makeInstance(get_class($class), [
         'name' => 'John',
-        'age' => 30
+        'age' => 30,
     ]);
 
     expect($instance->name)->toBe('John')
@@ -44,25 +49,27 @@ test('can create instance with public properties', function () {
 });
 
 test('throws exception for non-existent class', function () {
-    expect(fn() => ContainerHelper::makeInstance('NonExistentClass', []))
+    expect(fn () => ContainerHelper::makeInstance('NonExistentClass', []))
         ->toThrow(InvalidArgumentException::class);
 });
 
 test('throws exception for missing required constructor parameter', function () {
-    $class = new class('', 0) {
+    $class = new class('', 0)
+    {
         public function __construct(
             public string $name,
             public int $age
         ) {}
     };
 
-    expect(fn() => ContainerHelper::makeInstance(get_class($class), [
-        'name' => 'John'
+    expect(fn () => ContainerHelper::makeInstance(get_class($class), [
+        'name' => 'John',
     ]))->toThrow(InvalidArgumentException::class);
 });
 
 test('uses default values for optional constructor parameters', function () {
-    $class = new class('') {
+    $class = new class('')
+    {
         public function __construct(
             public string $name,
             public int $age = 25
@@ -70,7 +77,7 @@ test('uses default values for optional constructor parameters', function () {
     };
 
     $instance = ContainerHelper::makeInstance(get_class($class), [
-        'name' => 'John'
+        'name' => 'John',
     ]);
 
     expect($instance->name)->toBe('John')
@@ -78,17 +85,20 @@ test('uses default values for optional constructor parameters', function () {
 });
 
 test('ignores non-public properties', function () {
-    $class = new class {
+    $class = new class
+    {
+        public string $public;
+
+        protected int $age;
+
         /** @noinspection PhpUnusedPrivateFieldInspection */
         private string $name;
-        protected int $age;
-        public string $public;
     };
 
     $instance = ContainerHelper::makeInstance(get_class($class), [
         'name' => 'John',
         'age' => 30,
-        'public' => 'value'
+        'public' => 'value',
     ]);
 
     expect($instance->public)->toBe('value');
@@ -97,7 +107,7 @@ test('ignores non-public properties', function () {
 test('can create User instance with constructor parameters', function () {
     $instance = ContainerHelper::makeInstance(User::class, [
         'name' => 'John Doe',
-        'age' => 30
+        'age' => 30,
     ]);
 
     expect($instance->name)->toBe('John Doe')
@@ -107,7 +117,7 @@ test('can create User instance with constructor parameters', function () {
 test('can create ImmutablePoint instance with readonly properties', function () {
     $instance = ContainerHelper::makeInstance(ImmutablePoint::class, [
         'x' => 10,
-        'y' => 20
+        'y' => 20,
     ]);
 
     expect($instance->x)->toBe(10)
@@ -116,7 +126,7 @@ test('can create ImmutablePoint instance with readonly properties', function () 
 
 test('can create Product instance with public property', function () {
     $instance = ContainerHelper::makeInstance(Product::class, [
-        'name' => 'Laptop'
+        'name' => 'Laptop',
     ]);
 
     expect($instance->name)->toBe('Laptop');
@@ -125,7 +135,7 @@ test('can create Product instance with public property', function () {
 test('can create Address instance with multiple public properties', function () {
     $instance = ContainerHelper::makeInstance(Address::class, [
         'street' => '123 Main St',
-        'city' => 'New York'
+        'city' => 'New York',
     ]);
 
     expect($instance->street)->toBe('123 Main St')
@@ -133,14 +143,14 @@ test('can create Address instance with multiple public properties', function () 
 });
 
 test('throws exception when creating User with missing required parameters', function () {
-    expect(fn() => ContainerHelper::makeInstance(User::class, [
-        'name' => 'John Doe'
+    expect(fn () => ContainerHelper::makeInstance(User::class, [
+        'name' => 'John Doe',
     ]))->toThrow(InvalidArgumentException::class);
 });
 
 test('throws exception when creating ImmutablePoint with invalid parameters', function () {
-    expect(fn() => ContainerHelper::makeInstance(ImmutablePoint::class, [
+    expect(fn () => ContainerHelper::makeInstance(ImmutablePoint::class, [
         'x' => 'invalid',
-        'y' => 20
+        'y' => 20,
     ]))->toThrow(TypeError::class);
-}); 
+});
