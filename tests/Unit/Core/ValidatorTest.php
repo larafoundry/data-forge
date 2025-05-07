@@ -6,6 +6,7 @@ namespace Tests\Unit\Core;
 
 use Tests\Unit\Core\Objects\TestDto;
 use Ws\DataBridge\Core\DtoInspector;
+use Ws\DataBridge\Core\ValidationException;
 use Ws\DataBridge\Core\Validator;
 
 // Define a simple DTO class for testing
@@ -14,12 +15,15 @@ test('validator requires required fields', function () {
     $inspector = new DtoInspector(TestDto::class);
     $validator = new Validator($inspector, []);
 
-    $errors = $validator->validate();
-
-    expect($errors)->toHaveKey('name')
-        ->and($errors)->toHaveKey('age')
-        ->and($errors)->not->toHaveKey('email')
-        ->and($errors)->not->toHaveKey('url');
+    try {
+        $validator->validate();
+        $this->fail('ValidationException was not thrown');
+    } catch (ValidationException $e) {
+        expect($e->errors)->toHaveKey('name')
+            ->and($e->errors)->toHaveKey('age')
+            ->and($e->errors)->not->toHaveKey('email')
+            ->and($e->errors)->not->toHaveKey('url');
+    }
 });
 
 test('validator validates field types', function () {
@@ -31,17 +35,25 @@ test('validator validates field types', function () {
         'age' => 30,
         'email' => 'john@example.com',
     ]);
-    $validErrors = $validValidator->validate();
-    expect($validErrors)->toBeEmpty();
+    $validData = $validValidator->validate();
+    expect($validData)->toBeArray()
+        ->and($validData)->toHaveKey('name')
+        ->and($validData)->toHaveKey('age')
+        ->and($validData)->toHaveKey('email');
 
     // Invalid types
     $invalidValidator = new Validator($inspector, [
         'name' => 123, // should be string
         'age' => 'thirty', // should be int
     ]);
-    $invalidErrors = $invalidValidator->validate();
-    expect($invalidErrors)->toHaveKey('name')
-        ->and($invalidErrors)->toHaveKey('age');
+
+    try {
+        $invalidValidator->validate();
+        $this->fail('ValidationException was not thrown');
+    } catch (ValidationException $e) {
+        expect($e->errors)->toHaveKey('name')
+            ->and($e->errors)->toHaveKey('age');
+    }
 });
 
 test('validator applies min rule correctly', function () {
@@ -57,8 +69,12 @@ test('validator applies min rule correctly', function () {
         'age' => ['min' => 18],
     ]);
 
-    $errors = $validator->validate();
-    expect($errors)->toHaveKey('age');
+    try {
+        $validator->validate();
+        $this->fail('ValidationException was not thrown');
+    } catch (ValidationException $e) {
+        expect($e->errors)->toHaveKey('age');
+    }
 
     // Test with string length
     $validator = new Validator($inspector, [
@@ -70,8 +86,12 @@ test('validator applies min rule correctly', function () {
         'name' => ['min' => 3],
     ]);
 
-    $errors = $validator->validate();
-    expect($errors)->toHaveKey('name');
+    try {
+        $validator->validate();
+        $this->fail('ValidationException was not thrown');
+    } catch (ValidationException $e) {
+        expect($e->errors)->toHaveKey('name');
+    }
 });
 
 test('validator applies max rule correctly', function () {
@@ -87,8 +107,12 @@ test('validator applies max rule correctly', function () {
         'age' => ['max' => 60],
     ]);
 
-    $errors = $validator->validate();
-    expect($errors)->toHaveKey('age');
+    try {
+        $validator->validate();
+        $this->fail('ValidationException was not thrown');
+    } catch (ValidationException $e) {
+        expect($e->errors)->toHaveKey('age');
+    }
 
     // Test with string length
     $validator = new Validator($inspector, [
@@ -100,8 +124,12 @@ test('validator applies max rule correctly', function () {
         'name' => ['max' => 10],
     ]);
 
-    $errors = $validator->validate();
-    expect($errors)->toHaveKey('name');
+    try {
+        $validator->validate();
+        $this->fail('ValidationException was not thrown');
+    } catch (ValidationException $e) {
+        expect($e->errors)->toHaveKey('name');
+    }
 });
 
 test('validator applies in rule correctly', function () {
@@ -117,8 +145,9 @@ test('validator applies in rule correctly', function () {
         'name' => ['in' => ['John', 'Jane', 'Bob']],
     ]);
 
-    $validErrors = $validValidator->validate();
-    expect($validErrors)->not->toHaveKey('name');
+    $validData = $validValidator->validate();
+    expect($validData)->toHaveKey('name')
+        ->and($validData['name'])->toBe('John');
 
     // Invalid value not in the list
     $invalidValidator = new Validator($inspector, [
@@ -130,8 +159,12 @@ test('validator applies in rule correctly', function () {
         'name' => ['in' => ['John', 'Jane', 'Bob']],
     ]);
 
-    $invalidErrors = $invalidValidator->validate();
-    expect($invalidErrors)->toHaveKey('name');
+    try {
+        $invalidValidator->validate();
+        $this->fail('ValidationException was not thrown');
+    } catch (ValidationException $e) {
+        expect($e->errors)->toHaveKey('name');
+    }
 });
 
 test('validator applies regex rule correctly', function () {
@@ -147,8 +180,9 @@ test('validator applies regex rule correctly', function () {
         'name' => ['regex' => '/^[A-Za-z0-9]+$/'],
     ]);
 
-    $validErrors = $validValidator->validate();
-    expect($validErrors)->not->toHaveKey('name');
+    $validData = $validValidator->validate();
+    expect($validData)->toHaveKey('name')
+        ->and($validData['name'])->toBe('John123');
 
     // Invalid pattern match
     $invalidValidator = new Validator($inspector, [
@@ -160,8 +194,12 @@ test('validator applies regex rule correctly', function () {
         'name' => ['regex' => '/^[A-Za-z0-9]+$/'],
     ]);
 
-    $invalidErrors = $invalidValidator->validate();
-    expect($invalidErrors)->toHaveKey('name');
+    try {
+        $invalidValidator->validate();
+        $this->fail('ValidationException was not thrown');
+    } catch (ValidationException $e) {
+        expect($e->errors)->toHaveKey('name');
+    }
 });
 
 test('validator applies email rule correctly', function () {
@@ -178,8 +216,9 @@ test('validator applies email rule correctly', function () {
         'email' => ['email' => true],
     ]);
 
-    $validErrors = $validValidator->validate();
-    expect($validErrors)->not->toHaveKey('email');
+    $validData = $validValidator->validate();
+    expect($validData)->toHaveKey('email')
+        ->and($validData['email'])->toBe('john@example.com');
 
     // Invalid email
     $invalidValidator = new Validator($inspector, [
@@ -192,8 +231,12 @@ test('validator applies email rule correctly', function () {
         'email' => ['email' => true],
     ]);
 
-    $invalidErrors = $invalidValidator->validate();
-    expect($invalidErrors)->toHaveKey('email');
+    try {
+        $invalidValidator->validate();
+        $this->fail('ValidationException was not thrown');
+    } catch (ValidationException $e) {
+        expect($e->errors)->toHaveKey('email');
+    }
 });
 
 test('validator applies url rule correctly', function () {
@@ -210,8 +253,9 @@ test('validator applies url rule correctly', function () {
         'url' => ['url' => true],
     ]);
 
-    $validErrors = $validValidator->validate();
-    expect($validErrors)->not->toHaveKey('url');
+    $validData = $validValidator->validate();
+    expect($validData)->toHaveKey('url')
+        ->and($validData['url'])->toBe('https://example.com');
 
     // Invalid URL
     $invalidValidator = new Validator($inspector, [
@@ -224,8 +268,12 @@ test('validator applies url rule correctly', function () {
         'url' => ['url' => true],
     ]);
 
-    $invalidErrors = $invalidValidator->validate();
-    expect($invalidErrors)->toHaveKey('url');
+    try {
+        $invalidValidator->validate();
+        $this->fail('ValidationException was not thrown');
+    } catch (ValidationException $e) {
+        expect($e->errors)->toHaveKey('url');
+    }
 });
 
 test('validator uses custom error messages', function () {
@@ -239,6 +287,44 @@ test('validator uses custom error messages', function () {
         'name.required' => $customMessage,
     ]);
 
-    $errors = $validator->validate();
-    expect($errors['name'][0])->toBe($customMessage);
+    try {
+        $validator->validate();
+        $this->fail('ValidationException was not thrown');
+    } catch (ValidationException $e) {
+        expect($e->errors['name'][0])->toBe($customMessage);
+    }
+});
+
+test('validateSafe returns data when validation passes', function () {
+    $inspector = new DtoInspector(TestDto::class);
+    $validator = new Validator($inspector, [
+        'name' => 'John',
+        'age' => 30,
+    ]);
+
+    $data = $validator->validateSafe();
+    expect($data)->toBeArray()
+        ->and($data)->toHaveKey('name')
+        ->and($data)->toHaveKey('age');
+});
+
+test('validateSafe returns false when validation fails', function () {
+    $inspector = new DtoInspector(TestDto::class);
+    $validator = new Validator($inspector, []);
+
+    $result = $validator->validateSafe();
+    expect($result)->toBeFalse();
+});
+
+test('getErrors returns validation errors', function () {
+    $inspector = new DtoInspector(TestDto::class);
+    $validator = new Validator($inspector, []);
+
+    $result = $validator->validateSafe();
+    expect($result)->toBeFalse();
+
+    $errors = $validator->getErrors();
+    expect($errors)->toBeArray()
+        ->and($errors)->toHaveKey('name')
+        ->and($errors)->toHaveKey('age');
 });
