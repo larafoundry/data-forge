@@ -8,7 +8,7 @@ use InvalidArgumentException;
 use ReflectionClass;
 use ReflectionException;
 
-class ContainerHelper
+final class ContainerHelper
 {
     /**
      * @template T
