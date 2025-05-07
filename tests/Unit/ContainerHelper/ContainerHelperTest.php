@@ -11,7 +11,7 @@ use Tests\Unit\ContainerHelper\Objects\ImmutablePoint;
 use Tests\Unit\ContainerHelper\Objects\Product;
 use Tests\Unit\ContainerHelper\Objects\User;
 use TypeError;
-use Ws\DataBridge\Helpers\ContainerHelper;
+use Ws\DataBridge\Core\ContainerHelper;
 
 test('can create instance with constructor parameters', function () {
     $class = new class('', 0)

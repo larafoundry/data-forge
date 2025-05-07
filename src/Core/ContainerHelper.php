@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Ws\DataBridge\Helpers;
+namespace Ws\DataBridge\Core;
 
 use InvalidArgumentException;
 use ReflectionClass;
