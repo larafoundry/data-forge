@@ -19,7 +19,7 @@ use ReflectionUnionType;
  */
 final class DtoInspector
 {
-    private ReflectionClass $reflection;
+    private readonly ReflectionClass $reflection;
 
     /**
      * @param  class-string<T>  $class
