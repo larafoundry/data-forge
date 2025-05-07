@@ -32,15 +32,12 @@ final class Validator
     }
 
     /**
-     * Validates the attributes against the DTO structure and the defined rules.
-     *
-     * @return array<string, string[]> Array of validation errors, empty if validation passes
+     * @return array<string, string[]>
      */
     public function validate(): array
     {
         $errors = [];
 
-        // Check for required fields
         $requiredKeys = $this->dtoInspector->getRequiredKeys();
         foreach ($requiredKeys as $key) {
             if (! array_key_exists($key, $this->attributes)) {
@@ -48,14 +45,12 @@ final class Validator
             }
         }
 
-        // Validate types for all provided attributes
         foreach ($this->attributes as $key => $value) {
             if (! $this->dtoInspector->isTypeAcceptedForKey($key, $value)) {
                 $errors[$key] = [$this->getMessage("$key.type", "The $key field has an invalid type.")];
             }
         }
 
-        // Apply custom validation rules
         foreach ($this->rules as $field => $fieldRules) {
             if (! array_key_exists($field, $this->attributes)) {
                 continue;
@@ -76,22 +71,16 @@ final class Validator
         return $errors;
     }
 
-    /**
-     * Gets the error message for a specific validation rule.
-     */
     private function getMessage(string $key, string $default): string
     {
         return $this->messages[$key] ?? $default;
     }
 
-    /**
-     * Validates a value against a rule.
-     */
     private function validateRule(string $rule, mixed $value, mixed $params): bool
     {
         return match ($rule) {
-            'min' => is_numeric($value) ? $value >= $params : (is_string($value) ? mb_strlen($value) >= $params : false),
-            'max' => is_numeric($value) ? $value <= $params : (is_string($value) ? mb_strlen($value) <= $params : false),
+            'min' => is_numeric($value) ? $value >= $params : (is_string($value) && mb_strlen($value) >= $params),
+            'max' => is_numeric($value) ? $value <= $params : (is_string($value) && mb_strlen($value) <= $params),
             'in' => in_array($value, (array) $params),
             'regex' => is_string($value) && preg_match($params, $value),
             'email' => is_string($value) && filter_var($value, FILTER_VALIDATE_EMAIL) !== false,
