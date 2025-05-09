@@ -82,11 +82,35 @@ final class Validator
 
             $value = $this->attributes[$field];
 
-            foreach ($fieldRules as $rule => $ruleParams) {
+            foreach ($fieldRules as $ruleIndex => $ruleInfo) {
+                // Handle simple string rules like 'required', 'email'
+                if (is_string($ruleInfo)) {
+                    $rule = $ruleInfo;
+                    $ruleParams = null;
+                } 
+                // Handle array rules like ['min', 3]
+                elseif (is_array($ruleInfo) && count($ruleInfo) >= 2) {
+                    $rule = $ruleInfo[0];
+                    $ruleParams = $ruleInfo[1];
+                }
+                // Handle associative array rules like ['min' => 3]
+                elseif (is_string($ruleIndex) && !is_array($ruleInfo)) {
+                    $rule = $ruleIndex;
+                    $ruleParams = $ruleInfo;
+                } else {
+                    continue; // Skip invalid rule format
+                }
+
+                // Skip the rule if it's already handled (like required/type checks)
+                if (in_array($rule, ['required', 'string', 'integer']) && $this->errors) {
+                    continue;
+                }
+
                 if (! $this->validateRule($rule, $value, $ruleParams)) {
                     $this->errors[$field][] = $this->getMessage(
                         "$field.$rule",
-                        "The $field field validation failed for rule: $rule."
+                        "The $field field validation failed for rule: $rule.",
+                        $ruleParams
                     );
                 }
             }
@@ -114,17 +138,36 @@ final class Validator
         }
     }
 
-    private function getMessage(string $key, string $default): string
+    private function getMessage(string $key, string $default, mixed $params = null): string
     {
-        return $this->messages[$key] ?? $default;
+        $message = $this->messages[$key] ?? $default;
+        
+        // Replace placeholders in message
+        if ($params !== null) {
+            if (is_array($params)) {
+                $params = implode(', ', $params);
+            }
+            $message = str_replace(':min', (string) $params, $message);
+            $message = str_replace(':max', (string) $params, $message);
+        }
+        
+        return $message;
     }
 
-    private function validateRule(string $rule, mixed $value, mixed $params): bool
+    private function validateRule(string $rule, mixed $value, mixed $params = null): bool
     {
+        // Special case for the 'in' rule with multiple values
+        if ($rule === 'in' && is_array($params)) {
+            return in_array($value, $params, true);
+        }
+        
         return match ($rule) {
+            'required' => !empty($value),
+            'string' => is_string($value),
+            'integer' => is_int($value) || (is_string($value) && ctype_digit($value)),
             'min' => is_numeric($value) ? $value >= $params : (is_string($value) && mb_strlen($value) >= $params),
             'max' => is_numeric($value) ? $value <= $params : (is_string($value) && mb_strlen($value) <= $params),
-            'in' => in_array($value, (array) $params),
+            'in' => in_array($value, (array) $params, true),
             'regex' => is_string($value) && preg_match($params, $value),
             'email' => is_string($value) && filter_var($value, FILTER_VALIDATE_EMAIL) !== false,
             'url' => is_string($value) && filter_var($value, FILTER_VALIDATE_URL) !== false,

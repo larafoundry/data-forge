@@ -142,7 +142,9 @@ test('validator applies in rule correctly', function () {
     ]);
 
     $validValidator->withRules([
-        'name' => ['in' => ['John', 'Jane', 'Bob']],
+        'name' => [
+            ['in', ['John', 'Jane', 'Bob']]
+        ],
     ]);
 
     $validData = $validValidator->validate();
@@ -156,7 +158,9 @@ test('validator applies in rule correctly', function () {
     ]);
 
     $invalidValidator->withRules([
-        'name' => ['in' => ['John', 'Jane', 'Bob']],
+        'name' => [
+            ['in', ['John', 'Jane', 'Bob']]
+        ],
     ]);
 
     try {
@@ -177,7 +181,9 @@ test('validator applies regex rule correctly', function () {
     ]);
 
     $validValidator->withRules([
-        'name' => ['regex' => '/^[A-Za-z0-9]+$/'],
+        'name' => [
+            ['regex', '/^[A-Za-z0-9]+$/']
+        ],
     ]);
 
     $validData = $validValidator->validate();
@@ -191,7 +197,9 @@ test('validator applies regex rule correctly', function () {
     ]);
 
     $invalidValidator->withRules([
-        'name' => ['regex' => '/^[A-Za-z0-9]+$/'],
+        'name' => [
+            ['regex', '/^[A-Za-z0-9]+$/']
+        ],
     ]);
 
     try {
