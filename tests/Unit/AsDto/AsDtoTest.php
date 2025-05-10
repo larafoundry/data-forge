@@ -1,4 +1,4 @@
-<?php
+<?php /** @noinspection PhpUnhandledExceptionInspection */
 
 declare(strict_types=1);
 
@@ -72,7 +72,7 @@ it('throws exception when name is too short', function () {
 it('throws exception when age is below minimum', function () {
     $data = [
         'name' => 'John Doe',
-        'age' => 17, // Below minimum age of 18
+        'age' => 17, // Below the minimum age of 18
         'email' => 'john@example.com',
     ];
 

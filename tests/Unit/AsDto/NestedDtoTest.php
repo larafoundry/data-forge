@@ -19,6 +19,7 @@ class NestedDtoTest extends TestCase
             'email' => 'john@example.com',
         ];
 
+        /** @noinspection PhpUnhandledExceptionInspection */
         $person = BasicDto::fromArray($personData);
 
         // Now create a NestedDto using the BasicDto
@@ -32,7 +33,6 @@ class NestedDtoTest extends TestCase
             person: $data['person']
         );
 
-        $this->assertInstanceOf(NestedDto::class, $nestedDto);
         $this->assertEquals('Manager', $nestedDto->title);
         $this->assertInstanceOf(BasicDto::class, $nestedDto->person);
         $this->assertEquals('John Doe', $nestedDto->person->name);

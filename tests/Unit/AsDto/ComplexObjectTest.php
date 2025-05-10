@@ -1,4 +1,4 @@
-<?php
+<?php /** @noinspection PhpUnhandledExceptionInspection */
 
 declare(strict_types=1);
 
@@ -46,6 +46,7 @@ class ComplexObjectTest extends TestCase
         $carbonImmutable = CarbonImmutable::now();
         $enumType = EnumType::REQUIRED;
 
+        /** @noinspection PhpObjectFieldsAreOnlyWrittenInspection */
         $complexObject = new ComplexObject(
             enumType: $enumType,
             carbon: $carbon,
