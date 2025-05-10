@@ -14,25 +14,24 @@ class DtoWithMessages
         public readonly string $name,
         public readonly int $age,
         public readonly string $email
-    ) {
-    }
+    ) {}
 
     public static function rules(): array
     {
         return [
             'name' => [
-                'required', 
-                'string', 
-                'min:3'
+                'required',
+                'string',
+                'min:3',
             ],
             'age' => [
-                'required', 
-                'integer', 
-                'min:18'
+                'required',
+                'integer',
+                'min:18',
             ],
             'email' => [
-                'required', 
-                'email'
+                'required',
+                'email',
             ],
         ];
     }

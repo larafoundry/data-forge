@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Tests\Unit\AsDto;
 
 use Tests\Unit\AsDto\Objects\BasicDto;
-use Tests\Unit\AsDto\Objects\DtoWithRules;
 use Tests\Unit\AsDto\Objects\DtoWithMessages;
+use Tests\Unit\AsDto\Objects\DtoWithRules;
 use Tests\Unit\AsDto\Objects\EnumType;
 use Ws\DataBridge\Exceptions\ValidationException;
 
@@ -159,7 +159,7 @@ it('returns empty arrays for default rules and messages', function () {
 
 it('verifies custom rules are set correctly', function () {
     $rules = DtoWithRules::rules();
-    
+
     // Convert string rules to array format for testing purposes
     $parsedRules = [];
     foreach ($rules as $field => $rule) {
@@ -170,7 +170,7 @@ it('verifies custom rules are set correctly', function () {
                 if (str_contains($segment, ':')) {
                     [$ruleName, $param] = explode(':', $segment, 2);
                     if (is_numeric($param)) {
-                        $param = (int)$param;
+                        $param = (int) $param;
                     }
                     $parsed[] = [$ruleName, $param];
                 } else {
@@ -182,31 +182,31 @@ it('verifies custom rules are set correctly', function () {
             $parsedRules[$field] = $rule;
         }
     }
-    
+
     expect($parsedRules)
         ->toBeArray()
         ->toHaveKey('name')
         ->toHaveKey('age')
         ->toHaveKey('email')
         ->and($parsedRules['name'])->toBe([
-            'required', 
-            'string', 
-            ['min', 3]
+            'required',
+            'string',
+            ['min', 3],
         ])
         ->and($parsedRules['age'])->toBe([
-            'required', 
-            'integer', 
-            ['min', 18]
+            'required',
+            'integer',
+            ['min', 18],
         ])
         ->and($parsedRules['email'])->toBe([
-            'required', 
-            'email'
+            'required',
+            'email',
         ]);
 });
 
 it('verifies custom messages are set correctly', function () {
     $messages = DtoWithMessages::messages();
-    
+
     expect($messages)
         ->toBeArray()
         ->toHaveKey('name.required')

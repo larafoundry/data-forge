@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Tests\Unit\AsDto;
 
-use Tests\Unit\AsDto\Objects\NestedDto;
-use Tests\Unit\AsDto\Objects\BasicDto;
 use PHPUnit\Framework\TestCase;
+use Tests\Unit\AsDto\Objects\BasicDto;
+use Tests\Unit\AsDto\Objects\NestedDto;
 
 class NestedDtoTest extends TestCase
 {
-    public function testCanCreateNestedDto(): void
+    public function test_can_create_nested_dto(): void
     {
         // First, create a BasicDto instance
         $personData = [
@@ -18,20 +18,20 @@ class NestedDtoTest extends TestCase
             'age' => 30,
             'email' => 'john@example.com',
         ];
-        
+
         $person = BasicDto::fromArray($personData);
-        
+
         // Now create a NestedDto using the BasicDto
         $data = [
             'title' => 'Manager',
             'person' => $person,
         ];
-        
+
         $nestedDto = new NestedDto(
             title: $data['title'],
             person: $data['person']
         );
-        
+
         $this->assertInstanceOf(NestedDto::class, $nestedDto);
         $this->assertEquals('Manager', $nestedDto->title);
         $this->assertInstanceOf(BasicDto::class, $nestedDto->person);

@@ -16,8 +16,8 @@ class ValidationException extends Exception
                 $errorMessages[] = $message;
             }
         }
-        
-        $message = 'The given data was invalid. ' . implode(' ', $errorMessages);
+
+        $message = 'The given data was invalid. '.implode(' ', $errorMessages);
         parent::__construct($message);
     }
 }

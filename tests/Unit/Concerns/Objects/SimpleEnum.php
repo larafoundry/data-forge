@@ -9,4 +9,4 @@ enum SimpleEnum: string
     case ONE = 'one';
     case TWO = 'two';
     case THREE = 'three';
-} 
+}

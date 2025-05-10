@@ -16,8 +16,7 @@ class DtoWithRules
         public readonly string $email,
         public array $tags,
         public EnumType $enumType
-    ) {
-    }
+    ) {}
 
     public static function rules(): array
     {

@@ -12,8 +12,8 @@ final class DtoRuleBuilder
     /**
      * Gộp rule hệ thống (required, nullable, type-check) với rule tuỳ chỉnh.
      *
-     * @param array<string,string[]> $customRules  Đã chuẩn hoá bởi withRules()
-     * @param array<string,mixed>    $attributes   Payload gốc
+     * @param  array<string,string[]>  $customRules  Đã chuẩn hoá bởi withRules()
+     * @param  array<string,mixed>  $attributes  Payload gốc
      * @return array<string, array|string|Closure>
      */
     public static function build(
@@ -65,13 +65,12 @@ final class DtoRuleBuilder
     }
 
     /* ------------------------------------------------------------------ */
-    /*  Helpers                                                           */
+    /*  Helpers */
     /* ------------------------------------------------------------------ */
 
     /**
      * Chuẩn hoá rule về **mảng phẳng string**.
      *
-     * @param  string|array  $raw
      * @return string[]
      *
      * @throws InvalidArgumentException

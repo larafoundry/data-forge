@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Tests\Unit\AsDto;
 
-use Tests\Unit\AsDto\Objects\DtoWithMessages;
 use PHPUnit\Framework\TestCase;
+use Tests\Unit\AsDto\Objects\DtoWithMessages;
 use Ws\DataBridge\Exceptions\ValidationException;
 
 class DtoWithMessagesTest extends TestCase
 {
-    public function testCanCreateDtoWithValidData(): void
+    public function test_can_create_dto_with_valid_data(): void
     {
         $data = [
             'name' => 'John Doe',
@@ -26,7 +26,7 @@ class DtoWithMessagesTest extends TestCase
         $this->assertEquals('john@example.com', $dto->email);
     }
 
-    public function testShowsCustomMessageWhenNameTooShort(): void
+    public function test_shows_custom_message_when_name_too_short(): void
     {
         try {
             $data = [
@@ -42,7 +42,7 @@ class DtoWithMessagesTest extends TestCase
         }
     }
 
-    public function testShowsCustomMessageWhenAgeTooYoung(): void
+    public function test_shows_custom_message_when_age_too_young(): void
     {
         try {
             $data = [
@@ -58,7 +58,7 @@ class DtoWithMessagesTest extends TestCase
         }
     }
 
-    public function testShowsCustomMessageWhenEmailInvalid(): void
+    public function test_shows_custom_message_when_email_invalid(): void
     {
         try {
             $data = [
@@ -74,16 +74,16 @@ class DtoWithMessagesTest extends TestCase
         }
     }
 
-    public function testMessagesMethodReturnsExpectedMessages(): void
+    public function test_messages_method_returns_expected_messages(): void
     {
         $messages = DtoWithMessages::messages();
-        
+
         $this->assertIsArray($messages);
         $this->assertArrayHasKey('name.required', $messages);
         $this->assertArrayHasKey('name.min', $messages);
         $this->assertArrayHasKey('age.min', $messages);
         $this->assertArrayHasKey('email.email', $messages);
-        
+
         $this->assertEquals('The name field is mandatory', $messages['name.required']);
         $this->assertEquals('The name must be at least :min characters', $messages['name.min']);
         $this->assertEquals('You must be at least :min years old', $messages['age.min']);

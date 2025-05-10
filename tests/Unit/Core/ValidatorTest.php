@@ -83,7 +83,7 @@ test('validator applies min rule correctly', function () {
     ]);
 
     $validator->withRules([
-        'name' => ['min:3']
+        'name' => ['min:3'],
     ]);
 
     try {

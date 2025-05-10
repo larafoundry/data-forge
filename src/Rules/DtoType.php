@@ -23,11 +23,10 @@ final class DtoType implements ValidationRule
             return; // No type declared, accept any value
         }
 
-        if (!$this->matchType($type, $value)) {
-            $fail("The :attribute field has an invalid type.");
+        if (! $this->matchType($type, $value)) {
+            $fail('The :attribute field has an invalid type.');
         }
     }
-
 
     private function matchType(ReflectionType $type, mixed $v): bool
     {
@@ -39,8 +38,10 @@ final class DtoType implements ValidationRule
                 }
                 /** @var class-string $name */
                 $name = $t->getName();
+
                 return $v instanceof $name;
             }
+
             return false;
         };
 
@@ -50,6 +51,7 @@ final class DtoType implements ValidationRule
                     return true;
                 }
             }
+
             return false;
         }
 
@@ -59,10 +61,10 @@ final class DtoType implements ValidationRule
     private function normalize(string $phpType): string
     {
         return match ($phpType) {
-            'integer'  => 'int',
-            'boolean'  => 'bool',
-            'double'   => 'float',
-            default    => $phpType,
+            'integer' => 'int',
+            'boolean' => 'bool',
+            'double' => 'float',
+            default => $phpType,
         };
     }
 }

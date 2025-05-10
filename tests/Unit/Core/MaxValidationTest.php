@@ -16,16 +16,16 @@ use Ws\DataBridge\Exceptions\ValidationException;
 
 test('max validation works correctly', function () {
     $inspector = new DtoInspector(TestDto::class);
-    
+
     $validator = new Validator($inspector, [
         'name' => 'John',
         'age' => 100,
     ]);
-    
+
     $validator->withRules([
         'age' => 'numeric|max:50',
     ]);
-    
+
     expect(function () use ($validator) {
         $validator->validate();
     })->toThrow(ValidationException::class);
@@ -37,17 +37,17 @@ test('max validation rules are properly built', function () {
         'name' => 'John',
         'age' => 100,
     ]);
-    
+
     $validator->withRules([
         'age' => 'max:50',
     ]);
-    
+
     $rules = DtoRuleBuilder::build($inspector, $validator->getCustomRules(), $validator->getAttributes());
-    
+
     $ageRules = array_filter($rules['age'], function ($rule) {
         return is_string($rule) && str_starts_with($rule, 'max:');
     });
-    
+
     expect($ageRules)->not->toBeEmpty();
 });
 
@@ -58,12 +58,12 @@ test('direct Laravel validation with max rule works', function () {
         ),
         new Container()
     );
-    
+
     $validator = $factory->make(
-        ['age' => 100], 
+        ['age' => 100],
         ['age' => 'numeric|max:50']
     );
-    
+
     expect($validator->fails())->toBeTrue()
         ->and($validator->errors()->first('age'))->not->toBeEmpty();
 });
@@ -74,11 +74,11 @@ test('manually check if age is over max', function () {
         'name' => 'John',
         'age' => 100,
     ]);
-    
+
     $validator->withRules([
         'age' => 'max:50',
     ]);
-    
+
     // Manually validate age value against max:50
     $age = $validator->getAttributes()['age'];
     expect($age)->toBe(100)

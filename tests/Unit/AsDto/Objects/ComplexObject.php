@@ -1,10 +1,11 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests\Unit\AsDto\Objects;
 
 use Carbon\Carbon;
 use Carbon\CarbonImmutable;
-use DateTime;
 use DateTimeImmutable;
 use Ws\DataBridge\Concerns\AsDto;
 
@@ -17,7 +18,6 @@ final class ComplexObject
         public readonly Carbon $carbon,
         public readonly CarbonImmutable $carbonImmutable,
         public readonly DateTimeImmutable $dateTimeImmutable,
-        public readonly DateTime $dateTime,
-    ) {
-    }
+        public readonly DateTimeImmutable $dateTime,
+    ) {}
 }

@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Tests\Unit\AsDto;
 
-use Tests\Unit\AsDto\Objects\BasicDto;
 use PHPUnit\Framework\TestCase;
+use Tests\Unit\AsDto\Objects\BasicDto;
 
 class BasicDtoTest extends TestCase
 {
-    public function testCanCreateDtoFromArray(): void
+    public function test_can_create_dto_from_array(): void
     {
         $data = [
             'name' => 'John Doe',
@@ -25,7 +25,7 @@ class BasicDtoTest extends TestCase
         $this->assertEquals('john@example.com', $dto->email);
     }
 
-    public function testCanCreateDtoWithNullableProperty(): void
+    public function test_can_create_dto_with_nullable_property(): void
     {
         $data = [
             'name' => 'John Doe',
@@ -40,12 +40,12 @@ class BasicDtoTest extends TestCase
         $this->assertNull($dto->email);
     }
 
-    public function testDefaultRulesMethodReturnsEmptyArray(): void
+    public function test_default_rules_method_returns_empty_array(): void
     {
         $this->assertEmpty(BasicDto::rules());
     }
 
-    public function testDefaultMessagesMethodReturnsEmptyArray(): void
+    public function test_default_messages_method_returns_empty_array(): void
     {
         $this->assertEmpty(BasicDto::messages());
     }

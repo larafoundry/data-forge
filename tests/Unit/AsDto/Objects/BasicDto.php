@@ -14,6 +14,5 @@ class BasicDto
         public readonly string $name,
         public readonly int $age,
         public readonly ?string $email = null
-    ) {
-    }
+    ) {}
 }

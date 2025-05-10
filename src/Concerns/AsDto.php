@@ -14,8 +14,9 @@ trait AsDto
 {
     /**
      * @template T of object
-     * @param array<string, mixed> $attributes
-     * @return static
+     *
+     * @param  array<string, mixed>  $attributes
+     *
      * @throws ValidationException|ReflectionException
      */
     public static function fromArray(array $attributes): static
@@ -34,7 +35,7 @@ trait AsDto
 
     /**
      * Define validation rules using Laravel validation syntax
-     * 
+     *
      * Example:
      * [
      *   'name' => 'required|string|min:3',
@@ -50,7 +51,7 @@ trait AsDto
 
     /**
      * Define custom error messages for validation rules
-     * 
+     *
      * Example:
      * [
      *   'name.required' => 'The name field is required.',
