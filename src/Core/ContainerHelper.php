@@ -11,7 +11,7 @@ use ReflectionException;
 final class ContainerHelper
 {
     /**
-     * @template T
+     * @template T of object
      *
      * @param  class-string<T>  $class
      * @param  array<string,mixed>  $data
@@ -19,7 +19,7 @@ final class ContainerHelper
      *
      * @throws InvalidArgumentException|ReflectionException
      */
-    public static function makeInstance(string $class, array $data)
+    public static function makeInstance(string $class, array $data): object
     {
         if (! class_exists($class)) {
             throw new InvalidArgumentException("Class $class not found");
@@ -53,6 +53,7 @@ final class ContainerHelper
             }
         }
 
+        /** @var T */
         return $instance;
     }
 }
