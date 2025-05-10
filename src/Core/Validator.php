@@ -4,17 +4,26 @@ declare(strict_types=1);
 
 namespace Ws\DataBridge\Core;
 
+use Illuminate\Validation\Factory as ValidationFactory;
+use Illuminate\Translation\ArrayLoader;
+use Illuminate\Translation\Translator;
+use Illuminate\Container\Container;
+use Illuminate\Filesystem\Filesystem;
+use Illuminate\Validation\DatabasePresenceVerifier;
+use Illuminate\Validation\Validator as LaravelValidator;
 use Ws\DataBridge\Exceptions\ValidationException;
 
 final class Validator
 {
     private array $rules = [];
-
     private array $messages = [];
-
     private array $errors = [];
+    private ValidationFactory $validatorFactory;
 
-    public function __construct(readonly DtoInspector $dtoInspector, readonly array $attributes) {}
+    public function __construct(readonly DtoInspector $dtoInspector, readonly array $attributes) 
+    {
+        $this->validatorFactory = $this->createValidatorFactory();
+    }
 
     public static function from(DtoInspector $dtoInspector, array $attributes): self
     {
@@ -54,79 +63,114 @@ final class Validator
      */
     public function validate(): array
     {
-        $this->errors = [];
-        $validatedData = [];
-
-        // Validate required fields
+        // Get required keys to add required rule
         $requiredKeys = $this->dtoInspector->getRequiredKeys();
-        foreach ($requiredKeys as $key) {
-            if (! array_key_exists($key, $this->attributes)) {
-                $this->errors[$key] = [$this->getMessage("$key.required", "The $key field is required.")];
+        $laravelRules = $this->convertToLaravelRules($requiredKeys);
+        
+        // Create Laravel validator instance
+        $validator = $this->validatorFactory->make($this->attributes, $laravelRules, $this->messages);
+        
+        // Add custom validation rules
+        $validator->addExtension('min', function ($attribute, $value, $parameters) {
+            $min = $parameters[0] ?? 0;
+            if (is_string($min)) {
+                $min = (int)$min;  // Convert string parameter to integer
             }
-        }
-
-        // Validate field types
-        foreach ($this->attributes as $key => $value) {
-            if (! $this->dtoInspector->isTypeAcceptedForKey($key, $value)) {
-                $this->errors[$key] = [$this->getMessage("$key.type", "The $key field has an invalid type.")];
-            } else {
-                $validatedData[$key] = $value;
+            
+            if (is_string($value)) {
+                return mb_strlen($value) >= $min;
             }
-        }
-
-        // Apply custom rules
-        foreach ($this->rules as $field => $fieldRules) {
-            if (! array_key_exists($field, $this->attributes)) {
-                continue;
+            
+            if (is_numeric($value)) {
+                return $value >= $min;
             }
-
-            $value = $this->attributes[$field];
-
-            foreach ($fieldRules as $ruleIndex => $ruleInfo) {
-                // Handle simple string rules like 'required', 'email'
-                if (is_string($ruleInfo)) {
-                    $rule = $ruleInfo;
-                    $ruleParams = null;
-                } 
-                // Handle array rules like ['min', 3]
-                elseif (is_array($ruleInfo) && count($ruleInfo) >= 2) {
-                    $rule = $ruleInfo[0];
-                    $ruleParams = $ruleInfo[1];
+            
+            if (is_array($value)) {
+                return count($value) >= $min;
+            }
+            
+            return false;
+        });
+        
+        $validator->addExtension('max', function ($attribute, $value, $parameters) {
+            $max = $parameters[0] ?? PHP_INT_MAX;
+            if (is_string($max)) {
+                $max = (int)$max;
+            }
+            
+            if (is_string($value)) {
+                return mb_strlen($value) <= $max;
+            }
+            
+            if (is_numeric($value)) {
+                return $value <= $max;
+            }
+            
+            if (is_array($value)) {
+                return count($value) <= $max;
+            }
+            
+            return false;
+        });
+        
+        $validator->addExtension('email', function ($attribute, $value) {
+            return filter_var($value, FILTER_VALIDATE_EMAIL) !== false;
+        });
+        
+        $validator->addExtension('url', function ($attribute, $value) {
+            return filter_var($value, FILTER_VALIDATE_URL) !== false;
+        });
+        
+        $validator->after(function (LaravelValidator $validatorInstance) {
+            foreach ($this->attributes as $key => $value) {
+                if (!$this->dtoInspector->isTypeAcceptedForKey($key, $value)) {
+                    $validatorInstance->errors()->add($key, "The $key field has an invalid type.");
                 }
-                // Handle associative array rules like ['min' => 3]
-                elseif (is_string($ruleIndex) && !is_array($ruleInfo)) {
-                    $rule = $ruleIndex;
-                    $ruleParams = $ruleInfo;
-                } else {
-                    continue; // Skip invalid rule format
-                }
-
-                // Skip the rule if it's already handled (like required/type checks)
-                if (in_array($rule, ['required', 'string', 'integer']) && $this->errors) {
-                    continue;
-                }
-
-                if (! $this->validateRule($rule, $value, $ruleParams)) {
-                    $this->errors[$field][] = $this->getMessage(
-                        "$field.$rule",
-                        "The $field field validation failed for rule: $rule.",
-                        $ruleParams
-                    );
+                
+                if (isset($this->rules[$key])) {
+                    $rules = $this->rules[$key];
+                    
+                    // Handle max rule manually
+                    if (isset($rules['max'])) {
+                        $max = $rules['max'];
+                        
+                        if (is_string($value) && mb_strlen($value) > $max) {
+                            $validatorInstance->errors()->add($key, "The $key must not exceed $max characters.");
+                        } elseif (is_numeric($value) && $value > $max) {
+                            $validatorInstance->errors()->add($key, "The $key must not be greater than $max.");
+                        } elseif (is_array($value) && count($value) > $max) {
+                            $validatorInstance->errors()->add($key, "The $key must not have more than $max items.");
+                        }
+                    }
+                    
+                    if (is_array($rules)) {
+                        foreach ($rules as $rule) {
+                            if (is_array($rule) && count($rule) >= 2 && $rule[0] === 'max') {
+                                $max = $rule[1];
+                                
+                                if (is_string($value) && mb_strlen($value) > $max) {
+                                    $validatorInstance->errors()->add($key, "The $key must not exceed $max characters.");
+                                } elseif (is_numeric($value) && $value > $max) {
+                                    $validatorInstance->errors()->add($key, "The $key must not be greater than $max.");
+                                } elseif (is_array($value) && count($value) > $max) {
+                                    $validatorInstance->errors()->add($key, "The $key must not have more than $max items.");
+                                }
+                            }
+                        }
+                    }
                 }
             }
-        }
+        });
 
-        // If there are any errors, throw exception
-        if (! empty($this->errors)) {
+        if ($validator->fails()) {
+            $this->errors = $validator->errors()->toArray();
             throw new ValidationException($this->errors);
         }
-
-        return $validatedData;
+        
+        return $validator->validated();
     }
 
     /**
-     * Validate without throwing an exception
-     *
      * @return array|false validated data or false if validation fails
      */
     public function validateSafe(): array|false
@@ -137,41 +181,85 @@ final class Validator
             return false;
         }
     }
-
-    private function getMessage(string $key, string $default, mixed $params = null): string
+    
+    /**
+     * @param array $requiredKeys List of fields that are required
+     * @return array Laravel validation rules
+     */
+    private function convertToLaravelRules(array $requiredKeys): array
     {
-        $message = $this->messages[$key] ?? $default;
+        $laravelRules = [];
         
-        // Replace placeholders in message
-        if ($params !== null) {
-            if (is_array($params)) {
-                $params = implode(', ', $params);
+        foreach ($requiredKeys as $key) {
+            $laravelRules[$key][] = 'required';
+        }
+        
+        foreach ($this->rules as $field => $fieldRules) {
+            if (!isset($laravelRules[$field])) {
+                $laravelRules[$field] = [];
             }
-            $message = str_replace(':min', (string) $params, $message);
-            $message = str_replace(':max', (string) $params, $message);
+            
+            if (is_string($fieldRules)) {
+                $rules = explode('|', $fieldRules);
+                foreach ($rules as $rule) {
+                    $laravelRules[$field][] = $rule;
+                }
+                continue;
+            }
+            
+            foreach ($fieldRules as $ruleKey => $ruleValue) {
+                if ($ruleKey === 'min' || $ruleKey === 'max') {
+                    $laravelRules[$field][] = "$ruleKey:$ruleValue";
+                    continue;
+                }
+                
+                if (is_string($ruleKey) && is_bool($ruleValue) && $ruleValue) {
+                    $laravelRules[$field][] = $ruleKey;
+                }
+                elseif (is_string($ruleKey) && !is_bool($ruleValue)) {
+                    $laravelRules[$field][] = $ruleKey . ':' . $ruleValue;
+                }
+                elseif (is_array($ruleValue) && count($ruleValue) >= 2) {
+                    $ruleName = $ruleValue[0];
+                    $parameter = $ruleValue[1];
+                    
+                    if (is_array($parameter)) {
+                        $laravelRules[$field][] = $ruleName . ':' . implode(',', $parameter);
+                    } else {
+                        $laravelRules[$field][] = $ruleName . ':' . $parameter;
+                    }
+                }
+                elseif (is_int($ruleKey) && is_string($ruleValue)) {
+                    $laravelRules[$field][] = $ruleValue;
+                }
+            }
         }
         
-        return $message;
-    }
+        foreach (array_keys($this->attributes) as $attributeKey) {
+            if (!isset($laravelRules[$attributeKey])) {
+                if (!in_array($attributeKey, $requiredKeys, true)) {
+                     $laravelRules[$attributeKey][] = 'nullable';
+                }
+            }
+        }
 
-    private function validateRule(string $rule, mixed $value, mixed $params = null): bool
-    {
-        // Special case for the 'in' rule with multiple values
-        if ($rule === 'in' && is_array($params)) {
-            return in_array($value, $params, true);
+        foreach ($laravelRules as $field => $rules) {
+            $laravelRules[$field] = implode('|', $rules);
         }
         
-        return match ($rule) {
-            'required' => !empty($value),
-            'string' => is_string($value),
-            'integer' => is_int($value) || (is_string($value) && ctype_digit($value)),
-            'min' => is_numeric($value) ? $value >= $params : (is_string($value) && mb_strlen($value) >= $params),
-            'max' => is_numeric($value) ? $value <= $params : (is_string($value) && mb_strlen($value) <= $params),
-            'in' => in_array($value, (array) $params, true),
-            'regex' => is_string($value) && preg_match($params, $value),
-            'email' => is_string($value) && filter_var($value, FILTER_VALIDATE_EMAIL) !== false,
-            'url' => is_string($value) && filter_var($value, FILTER_VALIDATE_URL) !== false,
-            default => false,
-        };
+        return $laravelRules;
+    }
+    
+    /**
+     * Create a validator factory instance
+     *
+     * @return ValidationFactory
+     */
+    private function createValidatorFactory(): ValidationFactory
+    {
+        $translator = new Translator(new ArrayLoader(), 'en');
+        $validatorFactory = new ValidationFactory($translator, new Container());
+        
+        return $validatorFactory;
     }
 }
