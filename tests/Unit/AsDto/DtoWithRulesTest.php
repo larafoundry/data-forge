@@ -6,6 +6,7 @@ namespace Tests\Unit\AsDto;
 
 use Tests\Unit\AsDto\Objects\DtoWithRules;
 use PHPUnit\Framework\TestCase;
+use Tests\Unit\AsDto\Objects\EnumType;
 use Ws\DataBridge\Exceptions\ValidationException;
 
 class DtoWithRulesTest extends TestCase
@@ -16,6 +17,8 @@ class DtoWithRulesTest extends TestCase
             'name' => 'John Doe',
             'age' => 25,
             'email' => 'john@example.com',
+            'tags' => ['tag1', 'tag2'],
+            'enumType' => EnumType::REQUIRED
         ];
 
         $dto = DtoWithRules::fromArray($data);

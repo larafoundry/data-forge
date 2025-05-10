@@ -7,6 +7,7 @@ namespace Tests\Unit\AsDto;
 use Tests\Unit\AsDto\Objects\BasicDto;
 use Tests\Unit\AsDto\Objects\DtoWithRules;
 use Tests\Unit\AsDto\Objects\DtoWithMessages;
+use Tests\Unit\AsDto\Objects\EnumType;
 use Ws\DataBridge\Exceptions\ValidationException;
 
 it('can create a DTO from array with valid data', function () {
@@ -45,6 +46,8 @@ it('validates data against rules', function () {
         'name' => 'John Doe',
         'age' => 25,
         'email' => 'john@example.com',
+        'enumType' => EnumType::REQUIRED,
+        'tags' => ['tag1', 'tag2'],
     ];
 
     $dto = DtoWithRules::fromArray($data);
@@ -157,22 +160,45 @@ it('returns empty arrays for default rules and messages', function () {
 it('verifies custom rules are set correctly', function () {
     $rules = DtoWithRules::rules();
     
-    expect($rules)
+    // Convert string rules to array format for testing purposes
+    $parsedRules = [];
+    foreach ($rules as $field => $rule) {
+        if (is_string($rule)) {
+            $segments = explode('|', $rule);
+            $parsed = [];
+            foreach ($segments as $segment) {
+                if (str_contains($segment, ':')) {
+                    [$ruleName, $param] = explode(':', $segment, 2);
+                    if (is_numeric($param)) {
+                        $param = (int)$param;
+                    }
+                    $parsed[] = [$ruleName, $param];
+                } else {
+                    $parsed[] = $segment;
+                }
+            }
+            $parsedRules[$field] = $parsed;
+        } else {
+            $parsedRules[$field] = $rule;
+        }
+    }
+    
+    expect($parsedRules)
         ->toBeArray()
         ->toHaveKey('name')
         ->toHaveKey('age')
         ->toHaveKey('email')
-        ->and($rules['name'])->toBe([
+        ->and($parsedRules['name'])->toBe([
             'required', 
             'string', 
             ['min', 3]
         ])
-        ->and($rules['age'])->toBe([
+        ->and($parsedRules['age'])->toBe([
             'required', 
             'integer', 
             ['min', 18]
         ])
-        ->and($rules['email'])->toBe([
+        ->and($parsedRules['email'])->toBe([
             'required', 
             'email'
         ]);

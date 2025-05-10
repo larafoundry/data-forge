@@ -13,7 +13,9 @@ class DtoWithRules
     public function __construct(
         public readonly string $name,
         public readonly int $age,
-        public readonly string $email
+        public readonly string $email,
+        public array $tags,
+        public EnumType $enumType
     ) {
     }
 

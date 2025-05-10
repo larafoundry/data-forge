@@ -103,8 +103,11 @@ test('validator applies max rule correctly', function () {
         'age' => 65,
     ]);
 
+    // Use array format for max rule
     $validator->withRules([
-        'age' => ['max' => 60],
+        'age' => [
+            ['max', 60]
+        ],
     ]);
 
     try {
@@ -120,8 +123,11 @@ test('validator applies max rule correctly', function () {
         'age' => 25,
     ]);
 
+    // Use array format for max rule
     $validator->withRules([
-        'name' => ['max' => 10],
+        'name' => [
+            ['max', 10]
+        ],
     ]);
 
     try {
