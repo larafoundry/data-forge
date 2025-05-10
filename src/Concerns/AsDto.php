@@ -33,7 +33,15 @@ trait AsDto
     }
 
     /**
-     * @return array<string, array<string, mixed>>
+     * Define validation rules using Laravel validation syntax
+     * 
+     * Example:
+     * [
+     *   'name' => 'required|string|min:3',
+     *   'email' => 'required|email',
+     * ]
+     *
+     * @return array<string, string|array>
      */
     public static function rules(): array
     {
@@ -41,6 +49,14 @@ trait AsDto
     }
 
     /**
+     * Define custom error messages for validation rules
+     * 
+     * Example:
+     * [
+     *   'name.required' => 'The name field is required.',
+     *   'email.email' => 'Please provide a valid email address.',
+     * ]
+     *
      * @return array<string, string>
      */
     public static function messages(): array

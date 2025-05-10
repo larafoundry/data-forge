@@ -74,21 +74,8 @@ class DtoWithRulesTest extends TestCase
         $this->assertArrayHasKey('age', $rules);
         $this->assertArrayHasKey('email', $rules);
         
-        $this->assertEquals([
-            'required', 
-            'string', 
-            ['min', 3]
-        ], $rules['name']);
-        
-        $this->assertEquals([
-            'required', 
-            'integer', 
-            ['min', 18]
-        ], $rules['age']);
-        
-        $this->assertEquals([
-            'required', 
-            'email'
-        ], $rules['email']);
+        $this->assertEquals('required|string|min:3', $rules['name']);
+        $this->assertEquals('required|integer|min:18', $rules['age']);
+        $this->assertEquals('required|email', $rules['email']);
     }
 }
