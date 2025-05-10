@@ -8,17 +8,18 @@ use Illuminate\Container\Container;
 use Illuminate\Translation\ArrayLoader;
 use Illuminate\Translation\Translator;
 use Illuminate\Validation\Factory as ValidationFactory;
+use InvalidArgumentException;
 use Ws\DataBridge\Exceptions\ValidationException;
 
 final class Validator
 {
-    /** @var array<string, string|array> */
+    /** @var array<string,string[]> */
     private array $rules = [];
 
-    /** @var array<string, string> */
+    /** @var array<string,string> */
     private array $messages = [];
 
-    /** @var array<string, string[]> */
+    /** @var array<string,string[]> */
     private array $errors = [];
 
     private ValidationFactory $factory;
@@ -28,43 +29,68 @@ final class Validator
         private readonly array $attributes,
         ?ValidationFactory $factory = null,
     ) {
-        $this->factory = $factory ?? self::makeFactory();
+        // tạo factory cục bộ, không singleton
+        $this->factory = $factory ?? new ValidationFactory(
+            new Translator(new ArrayLoader(), 'en'),
+            new Container()
+        );
     }
 
-    public static function from(DtoInspector $inspector, array $attributes, ?ValidationFactory $factory = null): self
+    public static function from(DtoInspector $inspector, array $attributes): self
     {
-        return new self($inspector, $attributes, $factory);
+        return new self($inspector, $attributes);
     }
 
-    /* -----------------------------------------------------------------
-     *  Fluent helpers
-     * ----------------------------------------------------------------- */
+    /* ------------------------------------------------------------------ */
+    /*  Fluent helpers                                                    */
+    /* ------------------------------------------------------------------ */
 
-    /** @param array<string, string|array> $rules */
+    /**
+     * Thêm / ghi đè rules cho từng field.
+     * Chỉ nhận **pipe-string** hoặc **mảng phẳng string** (chuẩn Laravel).
+     *
+     * @param array<string,string|array> $rules
+     */
     public function withRules(array $rules): self
     {
-        $this->rules = array_merge($this->rules, $rules);
+        foreach ($rules as $field => $fieldRules) {
+            $normalized = DtoRuleBuilder::normalizeFieldRules($fieldRules);
+
+            $this->rules[$field] = isset($this->rules[$field])
+                ? array_merge($this->rules[$field], $normalized)
+                : $normalized;
+        }
+
         return $this;
     }
 
-    /** @param array<string, string> $messages */
+    /**
+     * @param array<string,string> $messages
+     */
     public function withMessages(array $messages): self
     {
         $this->messages = array_merge($this->messages, $messages);
+
         return $this;
     }
 
-    /* -----------------------------------------------------------------
-     *  Validation
-     * ----------------------------------------------------------------- */
+    /* ------------------------------------------------------------------ */
+
+    /** @return array<string,string[]> */
+    public function getErrors(): array
+    {
+        return $this->errors;
+    }
 
     /**
-     * @return array<string, mixed> Dữ liệu đã lọc
+     * Validate dữ liệu, trả mảng đã lọc.
+     *
+     * @return array<string,mixed>
      * @throws ValidationException
      */
     public function validate(): array
     {
-        $rules = DtoRuleBuilder::build($this->inspector, $this->rules);
+        $rules = DtoRuleBuilder::build($this->inspector, $this->rules, $this->attributes);
 
         $validator = $this->factory->make($this->attributes, $rules, $this->messages);
 
@@ -77,9 +103,9 @@ final class Validator
     }
 
     /**
-     * Validate “an toàn”: trả về false nếu lỗi
+     * Validate “an toàn”: trả false khi lỗi.
      *
-     * @return array<string, mixed>|false
+     * @return array<string,mixed>|false
      */
     public function validateSafe(): array|false
     {
@@ -88,25 +114,5 @@ final class Validator
         } catch (ValidationException) {
             return false;
         }
-    }
-
-    /* -----------------------------------------------------------------
-     *  Errors
-     * ----------------------------------------------------------------- */
-
-    /** @return array<string, string[]> */
-    public function getErrors(): array
-    {
-        return $this->errors;
-    }
-
-    /* -----------------------------------------------------------------
-     *  Internal
-     * ----------------------------------------------------------------- */
-
-    private static function makeFactory(): ValidationFactory
-    {
-        $translator = new Translator(new ArrayLoader(), 'en');
-        return new ValidationFactory($translator, new Container());
     }
 }

@@ -23,12 +23,12 @@ class DtoWithMessages
             'name' => [
                 'required', 
                 'string', 
-                ['min', 3]
+                'min:3'
             ],
             'age' => [
                 'required', 
                 'integer', 
-                ['min', 18]
+                'min:18'
             ],
             'email' => [
                 'required', 

@@ -66,7 +66,7 @@ test('validator applies min rule correctly', function () {
     ]);
 
     $validator->withRules([
-        'age' => ['min' => 18],
+        'age' => 'min:18',
     ]);
 
     try {
@@ -83,7 +83,7 @@ test('validator applies min rule correctly', function () {
     ]);
 
     $validator->withRules([
-        'name' => ['min' => 3],
+        'name' => ['min:3']
     ]);
 
     try {
@@ -103,11 +103,8 @@ test('validator applies max rule correctly', function () {
         'age' => 65,
     ]);
 
-    // Use array format for max rule
     $validator->withRules([
-        'age' => [
-            ['max', 60]
-        ],
+        'age' => ['max:60'],
     ]);
 
     try {
@@ -123,10 +120,9 @@ test('validator applies max rule correctly', function () {
         'age' => 25,
     ]);
 
-    // Use array format for max rule
     $validator->withRules([
         'name' => [
-            ['max', 10]
+            'max:10'
         ],
     ]);
 
@@ -141,7 +137,6 @@ test('validator applies max rule correctly', function () {
 test('validator applies in rule correctly', function () {
     $inspector = new DtoInspector(TestDto::class);
 
-    // Valid value in the list
     $validValidator = new Validator($inspector, [
         'name' => 'John',
         'age' => 30,
@@ -227,7 +222,7 @@ test('validator applies email rule correctly', function () {
     ]);
 
     $validValidator->withRules([
-        'email' => ['email' => true],
+        'email' => 'email',
     ]);
 
     $validData = $validValidator->validate();
@@ -264,7 +259,7 @@ test('validator applies url rule correctly', function () {
     ]);
 
     $validValidator->withRules([
-        'url' => ['url' => true],
+        'url' => ['url'],
     ]);
 
     $validData = $validValidator->validate();
