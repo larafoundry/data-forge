@@ -83,6 +83,22 @@ final class Validator
     }
 
     /**
+     * @return array<string,string[]>
+     */
+    public function getCustomRules(): array
+    {
+        return $this->rules;
+    }
+
+    /**
+     * @return array<string,mixed>
+     */
+    public function getAttributes(): array
+    {
+        return $this->attributes;
+    }
+
+    /**
      * Validate dữ liệu, trả mảng đã lọc.
      *
      * @return array<string,mixed>
@@ -103,7 +119,7 @@ final class Validator
     }
 
     /**
-     * Validate “an toàn”: trả false khi lỗi.
+     * Validate "an toàn": trả false khi lỗi.
      *
      * @return array<string,mixed>|false
      */
