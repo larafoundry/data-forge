@@ -18,7 +18,7 @@ class DtoWithRulesTest extends TestCase
             'age' => 25,
             'email' => 'john@example.com',
             'tags' => ['tag1', 'tag2'],
-            'enumType' => EnumType::REQUIRED
+            'enumType' => 'required'
         ];
 
         $dto = DtoWithRules::fromArray($data);
