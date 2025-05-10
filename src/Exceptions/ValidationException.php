@@ -11,7 +11,7 @@ class ValidationException extends Exception
     public function __construct(public readonly array $errors)
     {
         $errorMessages = [];
-        foreach ($this->errors as $field => $messages) {
+        foreach ($this->errors as $messages) {
             foreach ($messages as $message) {
                 $errorMessages[] = $message;
             }
