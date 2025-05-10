@@ -12,9 +12,10 @@ final class DtoRuleBuilder
     /**
      * Gộp rule hệ thống (required, nullable, type-check) với rule tuỳ chỉnh.
      *
+     * @param  DtoInspector<object>  $inspector
      * @param  array<string,string[]>  $customRules  Đã chuẩn hoá bởi withRules()
      * @param  array<string,mixed>  $attributes  Payload gốc
-     * @return array<string, array|string|Closure>
+     * @return array<string, array<string|Closure>>
      */
     public static function build(
         DtoInspector $inspector,
@@ -54,7 +55,7 @@ final class DtoRuleBuilder
             $rules[$field] = array_merge($rules[$field] ?? [], $fieldRules);
         }
 
-        /* ---- các key “lạ” trong payload → bỏ qua ----------------------- */
+        /* ---- các key "lạ" trong payload → bỏ qua ----------------------- */
         foreach (array_keys($attributes) as $key) {
             if (! isset($rules[$key])) {
                 $rules[$key][] = 'nullable';
@@ -70,8 +71,9 @@ final class DtoRuleBuilder
 
     /**
      * Chuẩn hoá rule về **mảng phẳng string**.
-     *
-     * @return string[]
+     * 
+     * @param string|array<mixed> $raw
+     * @return array<string>
      *
      * @throws InvalidArgumentException
      */
@@ -83,14 +85,16 @@ final class DtoRuleBuilder
         }
 
         // mảng phẳng string
+        $result = [];
         foreach ($raw as $item) {
-            if (! is_string($item)) {
+            if (!is_string($item)) {
                 throw new InvalidArgumentException(
                     'Validation rules must be pipe-string or flat string array (e.g. ["required", "min:3"]).'
                 );
             }
+            $result[] = $item;
         }
-
-        return $raw;
+        
+        return $result;
     }
 }
