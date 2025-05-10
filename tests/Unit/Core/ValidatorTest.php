@@ -104,7 +104,7 @@ test('validator applies max rule correctly', function () {
     ]);
 
     $validator->withRules([
-        'age' => ['max:60'],
+        'age' => 'numeric|max:60',
     ]);
 
     try {
@@ -121,9 +121,7 @@ test('validator applies max rule correctly', function () {
     ]);
 
     $validator->withRules([
-        'name' => [
-            'max:10'
-        ],
+        'name' => 'max:10',
     ]);
 
     try {
@@ -143,9 +141,7 @@ test('validator applies in rule correctly', function () {
     ]);
 
     $validValidator->withRules([
-        'name' => [
-            ['in', ['John', 'Jane', 'Bob']]
-        ],
+        'name' => 'in:John,Jane,Bob',
     ]);
 
     $validData = $validValidator->validate();
@@ -159,9 +155,7 @@ test('validator applies in rule correctly', function () {
     ]);
 
     $invalidValidator->withRules([
-        'name' => [
-            ['in', ['John', 'Jane', 'Bob']]
-        ],
+        'name' => 'in:John,Jane,Bob',
     ]);
 
     try {
@@ -182,9 +176,7 @@ test('validator applies regex rule correctly', function () {
     ]);
 
     $validValidator->withRules([
-        'name' => [
-            ['regex', '/^[A-Za-z0-9]+$/']
-        ],
+        'name' => 'regex:/^[A-Za-z0-9]+$/',
     ]);
 
     $validData = $validValidator->validate();
@@ -198,9 +190,7 @@ test('validator applies regex rule correctly', function () {
     ]);
 
     $invalidValidator->withRules([
-        'name' => [
-            ['regex', '/^[A-Za-z0-9]+$/']
-        ],
+        'name' => 'regex:/^[A-Za-z0-9]+$/',
     ]);
 
     try {
@@ -237,7 +227,7 @@ test('validator applies email rule correctly', function () {
     ]);
 
     $invalidValidator->withRules([
-        'email' => ['email' => true],
+        'email' => 'email',
     ]);
 
     try {
@@ -259,7 +249,7 @@ test('validator applies url rule correctly', function () {
     ]);
 
     $validValidator->withRules([
-        'url' => ['url'],
+        'url' => 'url',
     ]);
 
     $validData = $validValidator->validate();
@@ -274,7 +264,7 @@ test('validator applies url rule correctly', function () {
     ]);
 
     $invalidValidator->withRules([
-        'url' => ['url' => true],
+        'url' => 'url',
     ]);
 
     try {
