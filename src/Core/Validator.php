@@ -8,12 +8,14 @@ use Carbon\Carbon;
 use Carbon\CarbonImmutable;
 use DateTime;
 use DateTimeImmutable;
+use Exception;
 use Illuminate\Container\Container;
 use Illuminate\Translation\ArrayLoader;
 use Illuminate\Translation\Translator;
 use Illuminate\Validation\Factory as ValidationFactory;
 use ReflectionClass;
 use ReflectionEnum;
+use ReflectionException;
 use ReflectionNamedType;
 use ReflectionParameter;
 use Ws\DataBridge\Exceptions\ValidationException;
@@ -36,13 +38,15 @@ final class Validator
         private readonly array $attributes,
         ?ValidationFactory $factory = null,
     ) {
-        // tạo factory cục bộ, không singleton
         $this->factory = $factory ?? new ValidationFactory(
             new Translator(new ArrayLoader(), 'en'),
             new Container()
         );
     }
 
+    /**
+     * @throws ReflectionException
+     */
     public static function from(DtoInspector $inspector, array $attributes): self
     {
         $attributes = self::autoCastAttributes($inspector, $attributes);
@@ -50,14 +54,7 @@ final class Validator
         return new self($inspector, $attributes);
     }
 
-    /* ------------------------------------------------------------------ */
-    /*  Fluent helpers */
-    /* ------------------------------------------------------------------ */
-
-    /**
-     * Thêm / ghi đè rules cho từng field.
-     * Chỉ nhận **pipe-string** hoặc **mảng phẳng string** (chuẩn Laravel).
-     *
+    /*
      * @param  array<string,string|array>  $rules
      */
     public function withRules(array $rules): self
@@ -108,8 +105,6 @@ final class Validator
     }
 
     /**
-     * Validate dữ liệu, trả mảng đã lọc.
-     *
      * @return array<string,mixed>
      *
      * @throws ValidationException
@@ -143,10 +138,11 @@ final class Validator
     }
 
     /**
-     * Auto-cast attributes to their respective types based on the class constructor parameters.
-     *
      * @param  array<string,mixed>  $attributes
      * @return array<string,mixed>
+     *
+     * @throws ReflectionException
+     * @throws Exception
      */
     private static function autoCastAttributes(DtoInspector $inspector, array $attributes): array
     {
@@ -169,19 +165,20 @@ final class Validator
      *
      * @param  array<string,mixed>  $attributes
      * @return array<string,mixed>
+     *
+     * @throws Exception
      */
     private static function tryCastParameter(array $attributes, ReflectionParameter $param): array
     {
         $name = $param->getName();
         $type = $param->getType();
 
-        if (! isset($attributes[$name]) || ! $type || ! ($type instanceof ReflectionNamedType) || $type->isBuiltin()) {
+        if (! isset($attributes[$name]) || ! ($type instanceof ReflectionNamedType) || $type->isBuiltin()) {
             return $attributes;
         }
 
-        // Skip if the value is already of the correct type
         $typeName = $type->getName();
-        if (is_object($attributes[$name]) && $attributes[$name] instanceof $typeName) {
+        if ($attributes[$name] instanceof $typeName) {
             return $attributes;
         }
 
@@ -191,7 +188,7 @@ final class Validator
     }
 
     /**
-     * Cast a value to the specified type if possible.
+     * @throws Exception
      */
     private static function castValue(mixed $value, string $type): mixed
     {
@@ -209,7 +206,7 @@ final class Validator
                 Carbon::class => Carbon::parse($value),
                 CarbonImmutable::class => CarbonImmutable::parse($value),
                 DateTimeImmutable::class => new DateTimeImmutable($value),
-                DateTimeImmutable::class => new DateTimeImmutable($value),
+                DateTime::class => new DateTime($value),
                 default => $value
             };
         }
