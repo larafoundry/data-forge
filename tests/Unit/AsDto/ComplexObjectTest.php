@@ -17,7 +17,7 @@ class ComplexObjectTest extends TestCase
 {
     public function test_complex_object_can_be_instantiated(): void
     {
-        $now = new DateTimeImmutable();
+        $now = new DateTime();
         $nowImmutable = new DateTimeImmutable();
         $carbon = Carbon::now();
         $carbonImmutable = CarbonImmutable::now();
@@ -40,7 +40,7 @@ class ComplexObjectTest extends TestCase
 
     public function test_complex_object_properties_are_immutable(): void
     {
-        $now = new DateTimeImmutable();
+        $now = new DateTime();
         $nowImmutable = new DateTimeImmutable();
         $carbon = Carbon::now();
         $carbonImmutable = CarbonImmutable::now();
@@ -87,7 +87,7 @@ class ComplexObjectTest extends TestCase
         $this->assertEquals('2023-01-03 12:00:00', $dto->dateTimeImmutable->format('Y-m-d H:i:s'));
 
         // Verify DateTime auto-casting
-        $this->assertInstanceOf(DateTimeImmutable::class, $dto->dateTime);
+        $this->assertInstanceOf(DateTime::class, $dto->dateTime);
         $this->assertEquals('2023-01-04 12:00:00', $dto->dateTime->format('Y-m-d H:i:s'));
     }
 
@@ -96,7 +96,7 @@ class ComplexObjectTest extends TestCase
         $carbon = Carbon::parse('2023-01-01 12:00:00');
         $carbonImmutable = CarbonImmutable::parse('2023-01-02 12:00:00');
         $dateTimeImmutable = new DateTimeImmutable('2023-01-03 12:00:00');
-        $dateTime = new DateTimeImmutable('2023-01-04 12:00:00');
+        $dateTime = new DateTime('2023-01-04 12:00:00');
 
         $data = [
             'enumType' => EnumType::OPTIONAL,

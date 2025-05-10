@@ -6,6 +6,7 @@ namespace Tests\Unit\AsDto;
 
 use Carbon\Carbon;
 use Carbon\CarbonImmutable;
+use DateTime;
 use DateTimeImmutable;
 use PHPUnit\Framework\TestCase;
 use Tests\Unit\AsDto\Objects\ComplexObject;
@@ -20,7 +21,7 @@ class AutoCastTest extends TestCase
             'carbon' => new Carbon(),
             'carbonImmutable' => new CarbonImmutable(),
             'dateTimeImmutable' => new DateTimeImmutable(),
-            'dateTime' => new DateTimeImmutable(),
+            'dateTime' => new DateTime(),
         ];
 
         $dto = ComplexObject::fromArray($data);
@@ -36,7 +37,7 @@ class AutoCastTest extends TestCase
             'carbon' => '2023-05-15 10:30:00',
             'carbonImmutable' => new CarbonImmutable(),
             'dateTimeImmutable' => new DateTimeImmutable(),
-            'dateTime' => new DateTimeImmutable(),
+            'dateTime' => new DateTime(),
         ];
 
         $dto = ComplexObject::fromArray($data);
@@ -52,7 +53,7 @@ class AutoCastTest extends TestCase
             'carbon' => new Carbon(),
             'carbonImmutable' => '2023-06-20 15:45:00',
             'dateTimeImmutable' => new DateTimeImmutable(),
-            'dateTime' => new DateTimeImmutable(),
+            'dateTime' => new DateTime(),
         ];
 
         $dto = ComplexObject::fromArray($data);
@@ -68,7 +69,7 @@ class AutoCastTest extends TestCase
             'carbon' => new Carbon(),
             'carbonImmutable' => new CarbonImmutable(),
             'dateTimeImmutable' => '2023-07-25 08:15:00',
-            'dateTime' => new DateTimeImmutable(),
+            'dateTime' => new DateTime(),
         ];
 
         $dto = ComplexObject::fromArray($data);
@@ -89,7 +90,7 @@ class AutoCastTest extends TestCase
 
         $dto = ComplexObject::fromArray($data);
 
-        $this->assertInstanceOf(DateTimeImmutable::class, $dto->dateTime);
+        $this->assertInstanceOf(DateTime::class, $dto->dateTime);
         $this->assertEquals('2023-08-30 20:00:00', $dto->dateTime->format('Y-m-d H:i:s'));
     }
 
@@ -117,7 +118,7 @@ class AutoCastTest extends TestCase
         $this->assertInstanceOf(DateTimeImmutable::class, $dto->dateTimeImmutable);
         $this->assertEquals('2023-03-03 14:00:00', $dto->dateTimeImmutable->format('Y-m-d H:i:s'));
 
-        $this->assertInstanceOf(DateTimeImmutable::class, $dto->dateTime);
+        $this->assertInstanceOf(DateTime::class, $dto->dateTime);
         $this->assertEquals('2023-04-04 15:00:00', $dto->dateTime->format('Y-m-d H:i:s'));
     }
 }
