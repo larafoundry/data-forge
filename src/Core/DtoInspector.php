@@ -15,28 +15,33 @@ use ReflectionUnionType;
 
 /**
  * @template T of object
- *
- * @param  class-string<T>  $class
  */
 final class DtoInspector
 {
+    /**
+     * @var ReflectionClass<T>
+     */
     private readonly ReflectionClass $reflection;
 
     /**
      * @param  class-string<T>  $class
-     *
-     * @throws ReflectionException
      */
     public function __construct(readonly string $class)
     {
         $this->reflection = new ReflectionClass($class);
     }
 
+    /**
+     * @return ReflectionClass<T>
+     */
     public function getReflection(): ReflectionClass
     {
         return $this->reflection;
     }
 
+    /**
+     * @return array<int, string>
+     */
     public function getAcceptedKeys(): array
     {
         $required = [];
