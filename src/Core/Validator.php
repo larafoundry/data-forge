@@ -18,6 +18,8 @@ use ReflectionEnum;
 use ReflectionException;
 use ReflectionNamedType;
 use ReflectionParameter;
+use UnitEnum;
+use BackedEnum;
 use Ws\DataBridge\Exceptions\ValidationException;
 
 final class Validator
@@ -28,11 +30,15 @@ final class Validator
     /** @var array<string,string> */
     private array $messages = [];
 
-    /** @var array<string,string[]> */
+    /** @var array<string,array<string>> */
     private array $errors = [];
 
     private ValidationFactory $factory;
 
+    /**
+     * @param DtoInspector<object> $inspector
+     * @param array<string,mixed> $attributes
+     */
     public function __construct(
         private readonly DtoInspector $inspector,
         private readonly array $attributes,
@@ -45,6 +51,8 @@ final class Validator
     }
 
     /**
+     * @param DtoInspector<object> $inspector
+     * @param array<string,mixed> $attributes
      * @throws ReflectionException
      */
     public static function from(DtoInspector $inspector, array $attributes): self
@@ -54,8 +62,8 @@ final class Validator
         return new self($inspector, $attributes);
     }
 
-    /*
-     * @param  array<string,string|array>  $rules
+    /**
+     * @param  array<string,string|array<string>> $rules
      */
     public function withRules(array $rules): self
     {
@@ -116,11 +124,15 @@ final class Validator
         $validator = $this->factory->make($this->attributes, $rules, $this->messages);
 
         if ($validator->fails()) {
-            $this->errors = $validator->errors()->toArray();
+            /** @var array<string,array<string>> $errors */
+            $errors = $validator->errors()->toArray();
+            $this->errors = $errors;
             throw new ValidationException($this->errors);
         }
 
-        return $validator->validated();
+        /** @var array<string,mixed> */
+        $validated = $validator->validated();
+        return $validated;
     }
 
     /**
@@ -138,6 +150,7 @@ final class Validator
     }
 
     /**
+     * @param DtoInspector<object> $inspector
      * @param  array<string,mixed>  $attributes
      * @return array<string,mixed>
      *
@@ -196,6 +209,7 @@ final class Validator
         if (enum_exists($type)) {
             $reflectionEnum = new ReflectionEnum($type);
             if ($reflectionEnum->isBacked() && is_string($value)) {
+                /** @var class-string<BackedEnum> $type */
                 return $type::from($value);
             }
         }
