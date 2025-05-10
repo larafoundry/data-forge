@@ -71,8 +71,8 @@ final class DtoRuleBuilder
 
     /**
      * Chuẩn hoá rule về **mảng phẳng string**.
-     * 
-     * @param string|array<mixed> $raw
+     *
+     * @param  string|array<mixed>  $raw
      * @return array<string>
      *
      * @throws InvalidArgumentException
@@ -87,14 +87,14 @@ final class DtoRuleBuilder
         // mảng phẳng string
         $result = [];
         foreach ($raw as $item) {
-            if (!is_string($item)) {
+            if (! is_string($item)) {
                 throw new InvalidArgumentException(
                     'Validation rules must be pipe-string or flat string array (e.g. ["required", "min:3"]).'
                 );
             }
             $result[] = $item;
         }
-        
+
         return $result;
     }
 }

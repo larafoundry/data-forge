@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Ws\DataBridge\Core;
 
 use ReflectionClass;
-use ReflectionException;
 use ReflectionIntersectionType;
 use ReflectionNamedType;
 use ReflectionParameter;

@@ -9,7 +9,7 @@ use Exception;
 class ValidationException extends Exception
 {
     /**
-     * @param array<string, array<string>> $errors
+     * @param  array<string, array<string>>  $errors
      */
     public function __construct(public readonly array $errors)
     {

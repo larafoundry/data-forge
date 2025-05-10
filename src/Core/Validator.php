@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ws\DataBridge\Core;
 
+use BackedEnum;
 use Carbon\Carbon;
 use Carbon\CarbonImmutable;
 use DateTime;
@@ -18,8 +19,6 @@ use ReflectionEnum;
 use ReflectionException;
 use ReflectionNamedType;
 use ReflectionParameter;
-use UnitEnum;
-use BackedEnum;
 use Ws\DataBridge\Exceptions\ValidationException;
 
 final class Validator
@@ -36,8 +35,8 @@ final class Validator
     private ValidationFactory $factory;
 
     /**
-     * @param DtoInspector<object> $inspector
-     * @param array<string,mixed> $attributes
+     * @param  DtoInspector<object>  $inspector
+     * @param  array<string,mixed>  $attributes
      */
     public function __construct(
         private readonly DtoInspector $inspector,
@@ -51,8 +50,9 @@ final class Validator
     }
 
     /**
-     * @param DtoInspector<object> $inspector
-     * @param array<string,mixed> $attributes
+     * @param  DtoInspector<object>  $inspector
+     * @param  array<string,mixed>  $attributes
+     *
      * @throws ReflectionException
      */
     public static function from(DtoInspector $inspector, array $attributes): self
@@ -63,7 +63,7 @@ final class Validator
     }
 
     /**
-     * @param  array<string,string|array<string>> $rules
+     * @param  array<string,string|array<string>>  $rules
      */
     public function withRules(array $rules): self
     {
@@ -132,6 +132,7 @@ final class Validator
 
         /** @var array<string,mixed> */
         $validated = $validator->validated();
+
         return $validated;
     }
 
@@ -150,7 +151,7 @@ final class Validator
     }
 
     /**
-     * @param DtoInspector<object> $inspector
+     * @param  DtoInspector<object>  $inspector
      * @param  array<string,mixed>  $attributes
      * @return array<string,mixed>
      *
