@@ -5,6 +5,11 @@ parameters:
 
     level: 10
 
+    ignoreErrors:
+        - '#Trait Ws\\DataBridge\\Concerns\\AsDto is used zero times and is not analysed.#'
+    
+    treatPhpDocTypesAsCertain: false
+
 #    ignoreErrors:
 #        - '#PHPDoc tag @var#'
 #
