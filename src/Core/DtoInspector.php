@@ -32,6 +32,11 @@ final class DtoInspector
         $this->reflection = new ReflectionClass($class);
     }
 
+    public function getReflection(): ReflectionClass
+    {
+        return $this->reflection;
+    }
+
     public function getAcceptedKeys(): array
     {
         $required = [];
