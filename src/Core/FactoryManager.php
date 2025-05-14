@@ -3,15 +3,22 @@
 namespace Ws\DataBridge\Core;
 
 use ReflectionException;
+use ReflectionProperty;
+use ReflectionClass;
+use InvalidArgumentException;
 use Ws\DataBridge\Exceptions\ValidationException;
 
 /**
  * @template T of object
+ * @psalm-type Override = array<string,mixed>
  */
 final class FactoryManager
 {
     /** @var array<string, mixed> */
     private array $values = [];
+
+    /** @var bool */
+    private bool $shouldFillRandom = false;
 
     /**
      * @param class-string<T> $class
@@ -36,9 +43,11 @@ final class FactoryManager
      * @param string $property
      * @param mixed $value
      * @return $this
+     * @throws InvalidArgumentException If the property doesn't exist on the DTO
      */
     public function with(string $property, mixed $value): self
     {
+        $this->validatePropertyExists($property);
         $this->values[$property] = $value;
         return $this;
     }
@@ -48,12 +57,24 @@ final class FactoryManager
      *
      * @param array<string, mixed> $values
      * @return $this
+     * @throws InvalidArgumentException If any property doesn't exist on the DTO
      */
     public function withValues(array $values): self
     {
         foreach ($values as $property => $value) {
             $this->with($property, $value);
         }
+        return $this;
+    }
+
+    /**
+     * Auto-fill every missing property with random data
+     *
+     * @return $this
+     */
+    public function fillRandom(): self
+    {
+        $this->shouldFillRandom = true;
         return $this;
     }
 
@@ -66,8 +87,68 @@ final class FactoryManager
     public function make(): object
     {
         $inspector = new DtoInspector($this->class);
-        $validator = Validator::from($inspector, $this->values);
+        $data = $this->values;
+
+        // If random fill is enabled, populate missing properties
+        if ($this->shouldFillRandom) {
+            $data = $this->fillMissingProperties($inspector, $data);
+        }
+
+        $validator = Validator::from($inspector, $data);
         $validatedData = $validator->validate();
         return ContainerHelper::makeInstance($this->class, $validatedData);
+    }
+
+    /**
+     * Fill missing properties with random data
+     *
+     * @param DtoInspector $inspector
+     * @param array<string, mixed> $data
+     * @return array<string, mixed>
+     * @throws ReflectionException
+     */
+    private function fillMissingProperties(DtoInspector $inspector, array $data): array
+    {
+        $generator = RandomDataGenerator::create();
+        $reflection = new ReflectionClass($this->class);
+        $properties = $reflection->getProperties(ReflectionProperty::IS_PUBLIC);
+
+        foreach ($properties as $property) {
+            $name = $property->getName();
+
+            // Skip if property already has a value
+            if (array_key_exists($name, $data)) {
+                continue;
+            }
+
+            // Get the property type
+            $type = $property->getType();
+            if ($type === null) {
+                continue; // Skip properties without type hints
+            }
+
+            // Generate random value based on type and property name
+            $data[$name] = $generator->generate($type, $name);
+        }
+
+        return $data;
+    }
+
+    /**
+     * Validate that a property exists on the DTO
+     *
+     * @param string $property
+     * @throws InvalidArgumentException
+     */
+    private function validatePropertyExists(string $property): void
+    {
+        try {
+            $reflection = new ReflectionClass($this->class);
+            if (!$reflection->hasProperty($property)) {
+                throw new InvalidArgumentException("Property '{$property}' does not exist on {$this->class}");
+            }
+        } catch (ReflectionException $e) {
+            throw new InvalidArgumentException("Failed to validate property: {$e->getMessage()}", 0, $e);
+        }
     }
 }
