@@ -7,6 +7,7 @@ namespace Ws\DataBridge\Concerns;
 use ReflectionException;
 use Ws\DataBridge\Core\ContainerHelper;
 use Ws\DataBridge\Core\DtoInspector;
+use Ws\DataBridge\Core\FactoryManager;
 use Ws\DataBridge\Core\Validator;
 use Ws\DataBridge\Exceptions\ValidationException;
 
@@ -31,6 +32,16 @@ trait AsDto
         $validatedData = $validator->validate();
 
         return ContainerHelper::makeInstance($className, $validatedData);
+    }
+
+    /**
+     * Create a factory for this DTO
+     * 
+     * @return FactoryManager<static>
+     */
+    public static function factory(): FactoryManager
+    {
+        return FactoryManager::from(static::class);
     }
 
     /**

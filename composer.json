@@ -41,7 +41,8 @@
   "require-dev": {
     "laravel/pint": "^1.22",
     "phpstan/phpstan": "^2.1",
-    "pestphp/pest": "^3.8"
+    "pestphp/pest": "^3.8",
+    "fakerphp/faker": "^1.24"
   },
   "config": {
     "allow-plugins": {
