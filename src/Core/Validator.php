@@ -121,19 +121,59 @@ final class Validator
     {
         $rules = DtoRuleBuilder::build($this->inspector, $this->rules, $this->attributes);
 
-        $validator = $this->factory->make($this->attributes, $rules, $this->messages);
+        // Get the key map to handle MapKey attributes
+        $keyMap = $this->inspector->getKeyMap();
+        $reverseKeyMap = array_flip($keyMap);
+
+        // Create a new rules array with mapped keys
+        $mappedRules = [];
+        foreach ($rules as $key => $rule) {
+            $mappedKey = $keyMap[$key] ?? $key;
+            $mappedRules[$mappedKey] = $rule;
+        }
+
+        // Create a new messages array with mapped keys
+        $mappedMessages = [];
+        foreach ($this->messages as $key => $message) {
+            $parts = explode('.', $key, 2);
+            if (count($parts) === 2) {
+                $field = $parts[0];
+                $rule = $parts[1];
+                $mappedField = $keyMap[$field] ?? $field;
+                $mappedMessages["$mappedField.$rule"] = $message;
+            } else {
+                $mappedMessages[$key] = $message;
+            }
+        }
+
+        $validator = $this->factory->make($this->attributes, $mappedRules, $mappedMessages);
 
         if ($validator->fails()) {
             /** @var array<string,array<string>> $errors */
             $errors = $validator->errors()->toArray();
-            $this->errors = $errors;
+
+            // Map error keys back to property names
+            $mappedErrors = [];
+            foreach ($errors as $key => $messages) {
+                $propertyName = $reverseKeyMap[$key] ?? $key;
+                $mappedErrors[$propertyName] = $messages;
+            }
+
+            $this->errors = $mappedErrors;
             throw new ValidationException($this->errors);
         }
 
         /** @var array<string,mixed> */
         $validated = $validator->validated();
 
-        return $validated;
+        // Map validated keys back to property names
+        $mappedValidated = [];
+        foreach ($validated as $key => $value) {
+            $propertyName = $reverseKeyMap[$key] ?? $key;
+            $mappedValidated[$propertyName] = $value;
+        }
+
+        return $mappedValidated;
     }
 
     /**

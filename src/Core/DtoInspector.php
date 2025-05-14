@@ -5,12 +5,14 @@ declare(strict_types=1);
 namespace Ws\DataBridge\Core;
 
 use ReflectionClass;
+use ReflectionException;
 use ReflectionIntersectionType;
 use ReflectionNamedType;
 use ReflectionParameter;
 use ReflectionProperty;
 use ReflectionType;
 use ReflectionUnionType;
+use Ws\DataBridge\Attributes\MapKey;
 
 /**
  * @template T of object
@@ -23,7 +25,8 @@ final class DtoInspector
     private readonly ReflectionClass $reflection;
 
     /**
-     * @param  class-string<T>  $class
+     * @param class-string<T> $class
+     * @throws ReflectionException
      */
     public function __construct(readonly string $class)
     {
@@ -186,5 +189,54 @@ final class DtoInspector
         }
 
         return false;
+    }
+
+    /**
+     * Get the mapped key for a property if it has a MapKey attribute.
+     * Otherwise, return the property name.
+     */
+    public function getMappedKey(string $propertyName): string
+    {
+        if (! $this->reflection->hasProperty($propertyName)) {
+            return $propertyName;
+        }
+
+        $property = $this->reflection->getProperty($propertyName);
+        $attributes = $property->getAttributes(MapKey::class);
+
+        if (empty($attributes)) {
+            return $propertyName;
+        }
+
+        /** @var MapKey */
+        $mapKey = $attributes[0]->newInstance();
+        return $mapKey->key;
+    }
+
+    /**
+     * Get a map of property names to input keys.
+     * 
+     * @return array<string, string>
+     */
+    public function getKeyMap(): array
+    {
+        $map = [];
+
+        // Check constructor parameters
+        $ctor = $this->reflection->getConstructor();
+        if ($ctor !== null) {
+            foreach ($ctor->getParameters() as $param) {
+                $name = $param->getName();
+                $map[$name] = $this->getMappedKey($name);
+            }
+        }
+
+        // Check public properties
+        foreach ($this->reflection->getProperties(ReflectionProperty::IS_PUBLIC) as $prop) {
+            $name = $prop->getName();
+            $map[$name] = $this->getMappedKey($name);
+        }
+
+        return $map;
     }
 }

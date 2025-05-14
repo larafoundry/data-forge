@@ -23,9 +23,12 @@ final class DtoRuleBuilder
         array $attributes
     ): array {
         $rules = [];
+        $keyMap = $inspector->getKeyMap();
+        $reverseKeyMap = array_flip($keyMap);
 
         /* ---- required -------------------------------------------------- */
         foreach ($inspector->getRequiredKeys() as $key) {
+            $mappedKey = $keyMap[$key] ?? $key;
             $rules[$key][] = 'required';
         }
 
@@ -39,12 +42,15 @@ final class DtoRuleBuilder
             }
 
             // closure kiểm tra đúng kiểu
-            $rules[$key][] = static function (string $attribute, mixed $value, Closure $fail) use ($inspector) {
+            $rules[$key][] = static function (string $attribute, mixed $value, Closure $fail) use ($inspector, $reverseKeyMap) {
+                // Map the attribute back to the property name if needed
+                $propertyName = $reverseKeyMap[$attribute] ?? $attribute;
+
                 // chỉ check khi attribute thực sự được gửi lên
-                if (array_key_exists($attribute, $inspector->getReflection()->getDefaultProperties()) && $value === null) {
+                if (array_key_exists($propertyName, $inspector->getReflection()->getDefaultProperties()) && $value === null) {
                     return;
                 }
-                if (! $inspector->isTypeAcceptedForKey($attribute, $value)) {
+                if (! $inspector->isTypeAcceptedForKey($propertyName, $value)) {
                     $fail("The $attribute field has an invalid type.");
                 }
             };
@@ -57,8 +63,9 @@ final class DtoRuleBuilder
 
         /* ---- các key "lạ" trong payload → bỏ qua ----------------------- */
         foreach (array_keys($attributes) as $key) {
-            if (! isset($rules[$key])) {
-                $rules[$key][] = 'nullable';
+            $propertyName = $reverseKeyMap[$key] ?? $key;
+            if (! isset($rules[$propertyName])) {
+                $rules[$propertyName][] = 'nullable';
             }
         }
 

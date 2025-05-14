@@ -7,6 +7,7 @@ namespace Ws\DataBridge\Core;
 use InvalidArgumentException;
 use ReflectionClass;
 use ReflectionException;
+use Ws\DataBridge\Core\DtoInspector;
 
 final class ContainerHelper
 {
@@ -24,7 +25,24 @@ final class ContainerHelper
         if (! class_exists($class)) {
             throw new InvalidArgumentException("Class $class not found");
         }
+
         $ref = new ReflectionClass($class);
+        $inspector = new DtoInspector($class);
+        $keyMap = $inspector->getKeyMap();
+        $reverseKeyMap = array_flip($keyMap);
+
+        // Create a new data array with mapped keys
+        $mappedData = [];
+        foreach ($data as $key => $value) {
+            if (isset($reverseKeyMap[$key])) {
+                // If this is a mapped key, use the property name
+                $mappedData[$reverseKeyMap[$key]] = $value;
+            } else {
+                // Otherwise, keep the original key
+                $mappedData[$key] = $value;
+            }
+        }
+
         $usedKeys = [];
         $constructorArguments = [];
 
@@ -33,8 +51,13 @@ final class ContainerHelper
             $params = $ctor->getParameters();
             foreach ($params as $param) {
                 $name = $param->getName();
-                if (array_key_exists($name, $data)) {
-                    $constructorArguments[] = $data[$name];
+                $mappedKey = $keyMap[$name] ?? $name;
+
+                if (array_key_exists($name, $mappedData)) {
+                    $constructorArguments[] = $mappedData[$name];
+                    $usedKeys[] = $name;
+                } elseif (array_key_exists($mappedKey, $data)) {
+                    $constructorArguments[] = $data[$mappedKey];
                     $usedKeys[] = $name;
                 } elseif ($param->isDefaultValueAvailable()) {
                     $constructorArguments[] = $param->getDefaultValue();
@@ -47,7 +70,7 @@ final class ContainerHelper
             $instance = $ref->newInstance();
         }
 
-        foreach ($data as $key => $value) {
+        foreach ($mappedData as $key => $value) {
             if (! in_array($key, $usedKeys) && property_exists($class, $key) && $ref->getProperty($key)->isPublic()) {
                 $instance->{$key} = $value;
             }
