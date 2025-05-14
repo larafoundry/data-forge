@@ -1,15 +1,18 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Ws\DataBridge\Core;
 
+use InvalidArgumentException;
+use ReflectionClass;
 use ReflectionException;
 use ReflectionProperty;
-use ReflectionClass;
-use InvalidArgumentException;
 use Ws\DataBridge\Exceptions\ValidationException;
 
 /**
  * @template T of object
+ *
  * @psalm-type Override = array<string,mixed>
  */
 final class FactoryManager
@@ -17,19 +20,17 @@ final class FactoryManager
     /** @var array<string, mixed> */
     private array $values = [];
 
-    /** @var bool */
     private bool $shouldFillRandom = false;
 
     /**
-     * @param class-string<T> $class
+     * @param  class-string<T>  $class
      */
-    private function __construct(private readonly string $class)
-    {
-    }
+    private function __construct(private readonly string $class) {}
 
     /**
      * @template U of object
-     * @param class-string<U> $class
+     *
+     * @param  class-string<U>  $class
      * @return FactoryManager<U>
      */
     public static function from(string $class): self
@@ -40,23 +41,24 @@ final class FactoryManager
     /**
      * Set a value for a property
      *
-     * @param string $property
-     * @param mixed $value
      * @return $this
+     *
      * @throws InvalidArgumentException If the property doesn't exist on the DTO
      */
     public function with(string $property, mixed $value): self
     {
         $this->validatePropertyExists($property);
         $this->values[$property] = $value;
+
         return $this;
     }
 
     /**
      * Set multiple values at once
      *
-     * @param array<string, mixed> $values
+     * @param  array<string, mixed>  $values
      * @return $this
+     *
      * @throws InvalidArgumentException If any property doesn't exist on the DTO
      */
     public function withValues(array $values): self
@@ -64,6 +66,7 @@ final class FactoryManager
         foreach ($values as $property => $value) {
             $this->with($property, $value);
         }
+
         return $this;
     }
 
@@ -75,6 +78,7 @@ final class FactoryManager
     public function fillRandom(): self
     {
         $this->shouldFillRandom = true;
+
         return $this;
     }
 
@@ -82,6 +86,7 @@ final class FactoryManager
      * Create a new instance with the configured values
      *
      * @return T
+     *
      * @throws ReflectionException|ValidationException
      */
     public function make(): object
@@ -96,15 +101,16 @@ final class FactoryManager
 
         $validator = Validator::from($inspector, $data);
         $validatedData = $validator->validate();
+
         return ContainerHelper::makeInstance($this->class, $validatedData);
     }
 
     /**
      * Fill missing properties with random data
      *
-     * @param DtoInspector $inspector
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      * @return array<string, mixed>
+     *
      * @throws ReflectionException
      */
     private function fillMissingProperties(DtoInspector $inspector, array $data): array
@@ -137,14 +143,13 @@ final class FactoryManager
     /**
      * Validate that a property exists on the DTO
      *
-     * @param string $property
      * @throws InvalidArgumentException
      */
     private function validatePropertyExists(string $property): void
     {
         try {
             $reflection = new ReflectionClass($this->class);
-            if (!$reflection->hasProperty($property)) {
+            if (! $reflection->hasProperty($property)) {
                 throw new InvalidArgumentException("Property '{$property}' does not exist on {$this->class}");
             }
         } catch (ReflectionException $e) {

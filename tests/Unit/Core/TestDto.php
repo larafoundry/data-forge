@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests\Unit\Core;
 
 use Ws\DataBridge\Concerns\AsDto;
@@ -16,8 +18,7 @@ final class TestDto
         public readonly int $age,
         public readonly ?string $email = null,
         public readonly bool $active = true
-    ) {
-    }
+    ) {}
 
     /**
      * Define validation rules

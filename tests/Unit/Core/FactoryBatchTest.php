@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests\Unit\Core;
 
 use InvalidArgumentException;
@@ -8,7 +10,7 @@ use Ws\DataBridge\Core\FactoryBatch;
 
 class FactoryBatchTest extends TestCase
 {
-    public function testMakeCreatesRequestedCount(): void
+    public function test_make_creates_requested_count(): void
     {
         $count = 5;
         $dtos = FactoryBatch::for(TestDto::class)
@@ -25,7 +27,7 @@ class FactoryBatchTest extends TestCase
         }
     }
 
-    public function testWithAppliedToAllObjects(): void
+    public function test_with_applied_to_all_objects(): void
     {
         $count = 3;
         $dtos = FactoryBatch::for(TestDto::class)
@@ -43,7 +45,7 @@ class FactoryBatchTest extends TestCase
         }
     }
 
-    public function testWithValuesAppliedToAllObjects(): void
+    public function test_with_values_applied_to_all_objects(): void
     {
         $count = 3;
         $dtos = FactoryBatch::for(TestDto::class)
@@ -51,7 +53,7 @@ class FactoryBatchTest extends TestCase
             ->fillRandom()
             ->withValues([
                 'name' => 'Batch Test',
-                'age' => 25
+                'age' => 25,
             ])
             ->make();
 
@@ -63,7 +65,7 @@ class FactoryBatchTest extends TestCase
         }
     }
 
-    public function testCountThrowsExceptionForZero(): void
+    public function test_count_throws_exception_for_zero(): void
     {
         $this->expectException(InvalidArgumentException::class);
 
@@ -72,7 +74,7 @@ class FactoryBatchTest extends TestCase
             ->make();
     }
 
-    public function testCountThrowsExceptionForNegative(): void
+    public function test_count_throws_exception_for_negative(): void
     {
         $this->expectException(InvalidArgumentException::class);
 
@@ -81,7 +83,7 @@ class FactoryBatchTest extends TestCase
             ->make();
     }
 
-    public function testDefaultCountIsOne(): void
+    public function test_default_count_is_one(): void
     {
         $dtos = FactoryBatch::for(TestDto::class)
             ->fillRandom()
@@ -91,7 +93,7 @@ class FactoryBatchTest extends TestCase
         $this->assertCount(1, $dtos);
     }
 
-    public function testEachObjectHasUniqueRandomValues(): void
+    public function test_each_object_has_unique_random_values(): void
     {
         $count = 10; // Higher count to increase chance of uniqueness
         $dtos = FactoryBatch::for(TestDto::class)
@@ -103,7 +105,7 @@ class FactoryBatchTest extends TestCase
         $this->assertCount($count, $dtos);
 
         // Extract names to check for uniqueness
-        $names = array_map(fn($dto) => $dto->name, $dtos);
+        $names = array_map(fn ($dto) => $dto->name, $dtos);
 
         // Check that at least some names are different (random generation should produce different values)
         $uniqueNames = array_unique($names);

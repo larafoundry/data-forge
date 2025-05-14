@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace Tests\Unit\AsDto;
 
-use PHPUnit\Framework\TestCase;
-use Tests\Unit\AsDto\Objects\BasicDto;
-use Tests\Unit\AsDto\Objects\ComplexObject;
-use Tests\Unit\AsDto\Objects\EnumType;
 use Carbon\Carbon;
 use Carbon\CarbonImmutable;
 use DateTime;
 use DateTimeImmutable;
+use PHPUnit\Framework\TestCase;
+use Tests\Unit\AsDto\Objects\BasicDto;
+use Tests\Unit\AsDto\Objects\ComplexObject;
+use Tests\Unit\AsDto\Objects\EnumType;
 
 class FactoryTest extends TestCase
 {

@@ -7,7 +7,6 @@ namespace Ws\DataBridge\Core;
 use InvalidArgumentException;
 use ReflectionClass;
 use ReflectionException;
-use Ws\DataBridge\Core\DtoInspector;
 
 final class ContainerHelper
 {

@@ -1,18 +1,20 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Ws\DataBridge\Core;
 
+use BackedEnum;
+use DateTime;
+use DateTimeImmutable;
+use DateTimeInterface;
 use Faker\Factory;
 use Faker\Generator;
+use ReflectionEnum;
+use ReflectionIntersectionType;
 use ReflectionNamedType;
 use ReflectionType;
 use ReflectionUnionType;
-use ReflectionIntersectionType;
-use DateTimeInterface;
-use DateTimeImmutable;
-use BackedEnum;
-use ReflectionEnum;
-use ReflectionClass;
 use RuntimeException;
 
 /**
@@ -20,9 +22,7 @@ use RuntimeException;
  */
 final class RandomDataGenerator
 {
-    public function __construct(private readonly Generator $faker)
-    {
-    }
+    public function __construct(private readonly Generator $faker) {}
 
     /**
      * Create a new instance with default Faker generator
@@ -35,9 +35,8 @@ final class RandomDataGenerator
     /**
      * Generate a random value based on the given type
      *
-     * @param ReflectionType $type
-     * @param string|null $propertyName The name of the property (if available)
-     * @return mixed
+     * @param  ReflectionType  $type
+     * @param  string|null  $propertyName  The name of the property (if available)
      */
     public function generate(mixed $type, ?string $propertyName = null): mixed
     {
@@ -49,23 +48,22 @@ final class RandomDataGenerator
             // For union types, pick one of the types randomly
             $types = $type->getTypes();
             $randomType = $types[array_rand($types)];
+
             return $this->generate($randomType, $propertyName);
         }
 
         if ($type instanceof ReflectionIntersectionType) {
             // Intersection types are complex, we'll throw an exception for now
-            throw new RuntimeException("Cannot generate random data for intersection types");
+            throw new RuntimeException('Cannot generate random data for intersection types');
         }
 
-        throw new RuntimeException("Unsupported reflection type: " . get_class($type));
+        throw new RuntimeException('Unsupported reflection type: '.get_class($type));
     }
 
     /**
      * Generate a random value for a named type
      *
-     * @param ReflectionNamedType $type
-     * @param string|null $propertyName The name of the property (if available)
-     * @return mixed
+     * @param  string|null  $propertyName  The name of the property (if available)
      */
     private function generateForNamedType(ReflectionNamedType $type, ?string $propertyName = null): mixed
     {
@@ -105,7 +103,7 @@ final class RandomDataGenerator
             'string' => $this->faker->word(),
             'bool', 'boolean' => $this->faker->boolean(),
             'array' => $this->generateArray(),
-            DateTimeInterface::class, \DateTime::class, DateTimeImmutable::class => new DateTimeImmutable(),
+            DateTimeInterface::class, DateTime::class, DateTimeImmutable::class => new DateTimeImmutable(),
             default => $this->handleComplexType($typeName),
         };
     }
@@ -129,9 +127,6 @@ final class RandomDataGenerator
 
     /**
      * Handle complex types like enums and objects
-     *
-     * @param string $typeName
-     * @return mixed
      */
     private function handleComplexType(string $typeName): mixed
     {
@@ -152,15 +147,14 @@ final class RandomDataGenerator
     /**
      * Generate a random enum value
      *
-     * @param class-string<BackedEnum> $enumClass
-     * @return BackedEnum
+     * @param  class-string<BackedEnum>  $enumClass
      */
     private function generateEnum(string $enumClass): BackedEnum
     {
         $reflectionEnum = new ReflectionEnum($enumClass);
 
-        if (!$reflectionEnum->isBacked()) {
-            throw new RuntimeException("Only backed enums are supported for random generation");
+        if (! $reflectionEnum->isBacked()) {
+            throw new RuntimeException('Only backed enums are supported for random generation');
         }
 
         $cases = $reflectionEnum->getCases();
@@ -176,7 +170,8 @@ final class RandomDataGenerator
      * Generate a random object
      *
      * @template T of object
-     * @param class-string<T> $className
+     *
+     * @param  class-string<T>  $className
      * @return T
      */
     private function generateObject(string $className): object

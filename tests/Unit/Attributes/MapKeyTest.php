@@ -99,7 +99,6 @@ class MapKeyTest extends TestCase
         } catch (ValidationException $e) {
             $errors = $e->errors;
 
-
             // Check that we have errors for all properties
             $this->assertArrayHasKey('firstName', $errors);
             $this->assertArrayHasKey('lastName', $errors);

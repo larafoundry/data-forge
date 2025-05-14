@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests\Unit\Core;
 
 use InvalidArgumentException;
@@ -8,7 +10,7 @@ use Ws\DataBridge\Core\FactoryManager;
 
 class FactoryManagerTest extends TestCase
 {
-    public function testFillRandomGeneratesValues(): void
+    public function test_fill_random_generates_values(): void
     {
         $dto = FactoryManager::from(TestDto::class)
             ->fillRandom()
@@ -22,7 +24,7 @@ class FactoryManagerTest extends TestCase
         $this->assertIsBool($dto->active);
     }
 
-    public function testWithOverridesFillRandom(): void
+    public function test_with_overrides_fill_random(): void
     {
         $dto = FactoryManager::from(TestDto::class)
             ->fillRandom()
@@ -36,14 +38,14 @@ class FactoryManagerTest extends TestCase
         $this->assertIsInt($dto->age); // Should still be randomly generated
     }
 
-    public function testWithValuesOverridesFillRandom(): void
+    public function test_with_values_overrides_fill_random(): void
     {
         $dto = FactoryManager::from(TestDto::class)
             ->fillRandom()
             ->withValues([
                 'name' => 'Test Name',
                 'age' => 30,
-                'email' => 'test@example.com'
+                'email' => 'test@example.com',
             ])
             ->make();
 
@@ -53,7 +55,7 @@ class FactoryManagerTest extends TestCase
         $this->assertEquals('test@example.com', $dto->email);
     }
 
-    public function testWithThrowsExceptionForNonExistentProperty(): void
+    public function test_with_throws_exception_for_non_existent_property(): void
     {
         $this->expectException(InvalidArgumentException::class);
 
@@ -62,19 +64,19 @@ class FactoryManagerTest extends TestCase
             ->make();
     }
 
-    public function testWithValuesThrowsExceptionForNonExistentProperty(): void
+    public function test_with_values_throws_exception_for_non_existent_property(): void
     {
         $this->expectException(InvalidArgumentException::class);
 
         FactoryManager::from(TestDto::class)
             ->withValues([
                 'name' => 'Test Name',
-                'nonExistentProperty' => 'value'
+                'nonExistentProperty' => 'value',
             ])
             ->make();
     }
 
-    public function testFactoryMethodFromDto(): void
+    public function test_factory_method_from_dto(): void
     {
         $dto = TestDto::factory()
             ->fillRandom()

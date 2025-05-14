@@ -36,7 +36,7 @@ trait AsDto
 
     /**
      * Create a factory for this DTO
-     * 
+     *
      * @return FactoryManager<static>
      */
     public static function factory(): FactoryManager
