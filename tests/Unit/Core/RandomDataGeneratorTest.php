@@ -2,15 +2,16 @@
 
 declare(strict_types=1);
 
-namespace Tests\Unit\Core\RandomDataGenerator;
+namespace Tests\Unit\Core;
 
 use DateTimeImmutable;
 use DateTimeInterface;
 use Faker\Factory;
+use PHPUnit\Framework\TestCase;
 use ReflectionNamedType;
 use Ws\DataBridge\Core\RandomDataGenerator;
 
-class RandomDataGeneratorTest extends \PHPUnit\Framework\TestCase
+class RandomDataGeneratorTest extends TestCase
 {
     private RandomDataGenerator $generator;
 

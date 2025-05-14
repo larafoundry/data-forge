@@ -19,16 +19,4 @@ final class TestDto
         public readonly ?string $email = null,
         public readonly bool $active = true
     ) {}
-
-    /**
-     * Define validation rules
-     *
-     * @return array<string, string|array>
-     */
-    public static function rules(): array
-    {
-        return [
-            'email' => 'nullable|email',
-        ];
-    }
 }
