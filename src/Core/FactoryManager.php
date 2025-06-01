@@ -111,19 +111,14 @@ final class FactoryManager
         $requiredKeys = $inspector->getRequiredKeys();
 
         foreach ($requiredKeys as $requiredKey) {
-            $reflectionProperty = $inspector->getReflectionProperty($requiredKey);
-            if (! $reflectionProperty) {
+            if (array_key_exists($requiredKey, $data)) {
                 continue;
             }
-            $name = $reflectionProperty->getName();
-            if (array_key_exists($name, $data)) {
-                continue;
-            }
-            $type = $reflectionProperty->getType();
+            $type = $inspector->getTypeForKey($requiredKey);
             if ($type === null) {
                 continue;
             }
-            $data[$name] = $generator->generate($type, $name);
+            $data[$requiredKey] = $generator->generate($type, $requiredKey);
         }
 
         return $data;
