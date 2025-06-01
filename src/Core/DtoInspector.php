@@ -125,6 +125,7 @@ final class DtoInspector
     /**
      * Get the mapped key for a property if it has a MapKey attribute.
      * Otherwise, return the property name.
+     * @throws ReflectionException
      */
     public function getMappedKey(string $propertyName): string
     {
@@ -139,7 +140,7 @@ final class DtoInspector
             return $propertyName;
         }
 
-        /** @var MapKey */
+        /** @var MapKey $attributes */
         $mapKey = $attributes[0]->newInstance();
 
         return $mapKey->key;
@@ -149,6 +150,7 @@ final class DtoInspector
      * Get a map of property names to input keys.
      *
      * @return array<string, string>
+     * @throws ReflectionException
      */
     public function getKeyMap(): array
     {
@@ -170,6 +172,30 @@ final class DtoInspector
         }
 
         return $map;
+    }
+
+    /**
+     * @throws ReflectionException
+     */
+    public function getReflectionProperty(string $name): ?ReflectionProperty
+    {
+        if ($this->reflection->hasProperty($name)) {
+            return $this->reflection->getProperty($name);
+        }
+
+        return null;
+    }
+
+    /**
+     * @throws ReflectionException
+     */
+    public function getReflectionPropertyOrFail(string $name): ReflectionProperty
+    {
+        if (! $this->reflection->hasProperty($name)) {
+            throw new ReflectionException("Property '$name' does not exist in class '{$this->reflection->getName()}'");
+        }
+
+        return $this->reflection->getProperty($name);
     }
 
     private static function isParameterOptional(ReflectionParameter $param): bool
