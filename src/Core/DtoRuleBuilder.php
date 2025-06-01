@@ -65,6 +65,7 @@ final class DtoRuleBuilder
     }
 
     /**
+     * @param  string|array<int, string>  $raw
      * @return array<string>
      *
      * @throws InvalidArgumentException
