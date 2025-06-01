@@ -108,8 +108,7 @@ final class FactoryManager
     public function random()
     {
         $inspector = new DtoInspector($this->class);
-        $data = $this->values;
-        $data = $this->fillMissingProperties($inspector, $data);
+        $data = $this->fillMissingProperties($inspector, []);
         $validator = Validator::from($inspector, $data);
         $validatedData = $validator->validate();
 
