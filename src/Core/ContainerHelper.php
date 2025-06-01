@@ -50,13 +50,10 @@ final class ContainerHelper
             $params = $ctor->getParameters();
             foreach ($params as $param) {
                 $name = $param->getName();
-                $mappedKey = $keyMap[$name] ?? $name;
 
+                // Only check in mappedData, which already contains all properly mapped keys
                 if (array_key_exists($name, $mappedData)) {
                     $constructorArguments[] = $mappedData[$name];
-                    $usedKeys[] = $name;
-                } elseif (array_key_exists($mappedKey, $data)) {
-                    $constructorArguments[] = $data[$mappedKey];
                     $usedKeys[] = $name;
                 } elseif ($param->isDefaultValueAvailable()) {
                     $constructorArguments[] = $param->getDefaultValue();
