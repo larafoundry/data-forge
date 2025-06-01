@@ -25,9 +25,7 @@ final class DtoInspector
     private readonly ReflectionClass $reflection;
 
     /**
-     * @param  class-string<T>  $class
-     *
-     * @throws ReflectionException
+     * @param class-string<T> $class
      */
     public function __construct(readonly string $class)
     {
@@ -160,7 +158,7 @@ final class DtoInspector
             return $propertyName;
         }
 
-        /** @var MapKey $attributes */
+        /** @var MapKey $mapKey */
         $mapKey = $attributes[0]->newInstance();
 
         return $mapKey->key;
