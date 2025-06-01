@@ -7,8 +7,7 @@ namespace Ws\DataBridge\Core;
 use InvalidArgumentException;
 use ReflectionClass;
 use ReflectionException;
-use ReflectionProperty;
-use Ws\DataBridge\Exceptions\ValidationException;
+use Throwable;
 
 /**
  * @template T of object
@@ -71,8 +70,6 @@ final class FactoryManager
     }
 
     /**
-     * Auto-fill every missing property with random data
-     *
      * @return $this
      */
     public function fillRandom(): self
@@ -83,18 +80,15 @@ final class FactoryManager
     }
 
     /**
-     * Create a new instance with the configured values
-     *
      * @return T
      *
-     * @throws ReflectionException|ValidationException
+     * @throws Throwable
      */
-    public function make(): object
+    public function make()
     {
         $inspector = new DtoInspector($this->class);
         $data = $this->values;
 
-        // If random fill is enabled, populate missing properties
         if ($this->shouldFillRandom) {
             $data = $this->fillMissingProperties($inspector, $data);
         }
@@ -106,34 +100,29 @@ final class FactoryManager
     }
 
     /**
-     * Fill missing properties with random data
-     *
      * @param  array<string, mixed>  $data
      * @return array<string, mixed>
      *
-     * @throws ReflectionException
+     * @throws Throwable
      */
     private function fillMissingProperties(DtoInspector $inspector, array $data): array
     {
         $generator = RandomDataGenerator::create();
-        $reflection = new ReflectionClass($this->class);
-        $properties = $reflection->getProperties(ReflectionProperty::IS_PUBLIC);
+        $requiredKeys = $inspector->getRequiredKeys();
 
-        foreach ($properties as $property) {
-            $name = $property->getName();
-
-            // Skip if property already has a value
+        foreach ($requiredKeys as $requiredKey) {
+            $reflectionProperty = $inspector->getReflectionProperty($requiredKey);
+            if (! $reflectionProperty) {
+                continue;
+            }
+            $name = $reflectionProperty->getName();
             if (array_key_exists($name, $data)) {
                 continue;
             }
-
-            // Get the property type
-            $type = $property->getType();
+            $type = $reflectionProperty->getType();
             if ($type === null) {
-                continue; // Skip properties without type hints
+                continue;
             }
-
-            // Generate random value based on type and property name
             $data[$name] = $generator->generate($type, $name);
         }
 
@@ -141,8 +130,6 @@ final class FactoryManager
     }
 
     /**
-     * Validate that a property exists on the DTO
-     *
      * @throws InvalidArgumentException
      */
     private function validatePropertyExists(string $property): void
@@ -150,7 +137,7 @@ final class FactoryManager
         try {
             $reflection = new ReflectionClass($this->class);
             if (! $reflection->hasProperty($property)) {
-                throw new InvalidArgumentException("Property '{$property}' does not exist on {$this->class}");
+                throw new InvalidArgumentException("Property '$property' does not exist on $this->class");
             }
         } catch (ReflectionException $e) {
             throw new InvalidArgumentException("Failed to validate property: {$e->getMessage()}", 0, $e);
