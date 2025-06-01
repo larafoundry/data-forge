@@ -100,6 +100,23 @@ final class FactoryManager
     }
 
     /**
+     * @return T
+     *
+     * @throws Throwable
+     * @throws ReflectionException
+     */
+    public function random()
+    {
+        $inspector = new DtoInspector($this->class);
+        $data = $this->values;
+        $data = $this->fillMissingProperties($inspector, $data);
+        $validator = Validator::from($inspector, $data);
+        $validatedData = $validator->validate();
+
+        return ContainerHelper::makeInstance($this->class, $validatedData);
+    }
+
+    /**
      * @param  array<string, mixed>  $data
      * @return array<string, mixed>
      *
