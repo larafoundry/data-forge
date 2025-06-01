@@ -1,5 +1,7 @@
 <?php
 
+/** @noinspection PhpUnused */
+
 declare(strict_types=1);
 
 namespace Ws\DataBridge\Core;
@@ -25,7 +27,7 @@ final class DtoInspector
     private readonly ReflectionClass $reflection;
 
     /**
-     * @param class-string<T> $class
+     * @param  class-string<T>  $class
      */
     public function __construct(readonly string $class)
     {
@@ -298,13 +300,28 @@ final class DtoInspector
 
     private static function checkCompositeType(ReflectionType $type, mixed $v): bool
     {
-        $types = $type instanceof ReflectionUnionType ? $type->getTypes() : ($type instanceof ReflectionIntersectionType
-            ? $type->getTypes()
-            : []);
-        foreach ($types as $t) {
-            if ($t instanceof ReflectionNamedType && self::checkNamedType($t, $v)) {
-                return true;
+        if ($type instanceof ReflectionUnionType) {
+            // For union types, value should match ANY of the types (OR logic)
+            $types = $type->getTypes();
+            foreach ($types as $t) {
+                if ($t instanceof ReflectionNamedType && self::checkNamedType($t, $v)) {
+                    return true;
+                }
             }
+
+            return false;
+        }
+
+        if ($type instanceof ReflectionIntersectionType) {
+            // For intersection types, value should match ALL of the types (AND logic)
+            $types = $type->getTypes();
+            foreach ($types as $t) {
+                if ($t instanceof ReflectionNamedType && ! self::checkNamedType($t, $v)) {
+                    return false;
+                }
+            }
+
+            return ! empty($types);
         }
 
         return false;
