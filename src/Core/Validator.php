@@ -64,7 +64,7 @@ final class Validator
     }
 
     /**
-     * @param  array<string,string|array<string>>  $rules
+     * @param  array<string,string|array<int,string>>  $rules
      */
     public function withRules(array $rules): self
     {
