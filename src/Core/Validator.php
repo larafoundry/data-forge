@@ -14,7 +14,6 @@ use Illuminate\Container\Container;
 use Illuminate\Translation\ArrayLoader;
 use Illuminate\Translation\Translator;
 use Illuminate\Validation\Factory as ValidationFactory;
-use ReflectionClass;
 use ReflectionEnum;
 use ReflectionException;
 use ReflectionNamedType;
@@ -163,9 +162,30 @@ final class Validator
         $validated = $validator->validated();
 
         $mappedValidated = [];
+        $duplicateKeys = [];
+
+        // First pass: detect duplicate property names
         foreach ($validated as $key => $value) {
             $propertyName = $reverseKeyMap[$key] ?? $key;
+
+            if (array_key_exists($propertyName, $mappedValidated)) {
+                $duplicateKeys[$propertyName][] = $key;
+            }
+
             $mappedValidated[$propertyName] = $value;
+        }
+
+        // If duplicates were found, throw an exception
+        if (! empty($duplicateKeys)) {
+            $errorMessages = [];
+            foreach ($duplicateKeys as $propertyName => $keys) {
+                $keysList = implode(', ', $keys);
+                $errorMessages[] = "Multiple input keys ($keysList) map to the same property '$propertyName'";
+            }
+
+            throw new ValidationException([
+                'key_mapping' => $errorMessages,
+            ]);
         }
 
         return $mappedValidated;
@@ -195,7 +215,8 @@ final class Validator
      */
     private static function autoCastAttributes(DtoInspector $inspector, array $attributes): array
     {
-        $reflection = new ReflectionClass($inspector->getReflection()->getName());
+        // Use the reflection instance from the inspector directly instead of creating a new one
+        $reflection = $inspector->getReflection();
         $constructor = $reflection->getConstructor();
 
         if (! $constructor) {
