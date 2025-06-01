@@ -140,7 +140,6 @@ final class RandomDataGenerator
 
     /**
      * @template T of BackedEnum|UnitEnum
-     *
      * @param  class-string<T>  $enumClass
      * @return T
      *
@@ -157,6 +156,7 @@ final class RandomDataGenerator
 
         $case = $cases[array_rand($cases)];
 
+        /** @var T */
         return $enumClass::{$case->getName()};
     }
 
