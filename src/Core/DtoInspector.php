@@ -200,6 +200,29 @@ final class DtoInspector
         return $this->reflection->getProperty($name);
     }
 
+    /**
+     * @throws ReflectionException
+     */
+    public function getTypeForKey(string $key): ?ReflectionType
+    {
+        if ($this->reflection->hasProperty($key)) {
+            $prop = $this->reflection->getProperty($key);
+
+            return $prop->getType();
+        }
+
+        $ctor = $this->reflection->getConstructor();
+        if ($ctor !== null) {
+            foreach ($ctor->getParameters() as $param) {
+                if ($param->getName() === $key) {
+                    return $param->getType();
+                }
+            }
+        }
+
+        return null;
+    }
+
     private static function isParameterOptional(ReflectionParameter $param): bool
     {
         if ($param->isDefaultValueAvailable()) {
