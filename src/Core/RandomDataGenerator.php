@@ -11,11 +11,14 @@ use DateTimeInterface;
 use Faker\Factory;
 use Faker\Generator;
 use ReflectionEnum;
+use ReflectionException;
 use ReflectionIntersectionType;
 use ReflectionNamedType;
 use ReflectionType;
 use ReflectionUnionType;
 use RuntimeException;
+use Throwable;
+use UnitEnum;
 
 /**
  * Generates random values for supported PHP property types.
@@ -24,19 +27,15 @@ final class RandomDataGenerator
 {
     public function __construct(private readonly Generator $faker) {}
 
-    /**
-     * Create a new instance with default Faker generator
-     */
     public static function create(): self
     {
         return new self(Factory::create());
     }
 
     /**
-     * Generate a random value based on the given type
-     *
      * @param  ReflectionType  $type
-     * @param  string|null  $propertyName  The name of the property (if available)
+     *
+     * @throws Throwable
      */
     public function generate(mixed $type, ?string $propertyName = null): mixed
     {
@@ -45,7 +44,6 @@ final class RandomDataGenerator
         }
 
         if ($type instanceof ReflectionUnionType) {
-            // For union types, pick one of the types randomly
             $types = $type->getTypes();
             $randomType = $types[array_rand($types)];
 
@@ -53,7 +51,6 @@ final class RandomDataGenerator
         }
 
         if ($type instanceof ReflectionIntersectionType) {
-            // Intersection types are complex, we'll throw an exception for now
             throw new RuntimeException('Cannot generate random data for intersection types');
         }
 
@@ -61,9 +58,9 @@ final class RandomDataGenerator
     }
 
     /**
-     * Generate a random value for a named type
-     *
      * @param  string|null  $propertyName  The name of the property (if available)
+     *
+     * @throws Throwable
      */
     private function generateForNamedType(ReflectionNamedType $type, ?string $propertyName = null): mixed
     {
@@ -126,57 +123,53 @@ final class RandomDataGenerator
     }
 
     /**
-     * Handle complex types like enums and objects
+     * @throws Throwable
      */
     private function handleComplexType(string $typeName): mixed
     {
-        // Check if it's an enum
         if (class_exists($typeName) && enum_exists($typeName)) {
             return $this->generateEnum($typeName);
         }
 
-        // Check if it's a class that can be instantiated
         if (class_exists($typeName)) {
             return $this->generateObject($typeName);
         }
 
-        // Default fallback
         return $this->faker->word();
     }
 
     /**
-     * Generate a random enum value
+     * @template T of BackedEnum|UnitEnum
      *
-     * @param  class-string<BackedEnum>  $enumClass
+     * @param  class-string<T>  $enumClass
+     * @return T
+     *
+     * @throws ReflectionException
      */
-    private function generateEnum(string $enumClass): BackedEnum
+    private function generateEnum(string $enumClass)
     {
         $reflectionEnum = new ReflectionEnum($enumClass);
-
-        if (! $reflectionEnum->isBacked()) {
-            throw new RuntimeException('Only backed enums are supported for random generation');
-        }
-
         $cases = $reflectionEnum->getCases();
 
         if (empty($cases)) {
-            throw new RuntimeException("Enum {$enumClass} has no cases");
+            throw new RuntimeException("Enum $enumClass has no cases");
         }
 
-        return $cases[array_rand($cases)]->getValue();
+        $case = $cases[array_rand($cases)];
+
+        return $enumClass::{$case->getName()};
     }
 
     /**
-     * Generate a random object
-     *
      * @template T of object
      *
      * @param  class-string<T>  $className
      * @return T
+     *
+     * @throws Throwable
      */
-    private function generateObject(string $className): object
+    private function generateObject(string $className)
     {
-        // Use FactoryManager to create the object
         return FactoryManager::from($className)
             ->fillRandom()
             ->make();
