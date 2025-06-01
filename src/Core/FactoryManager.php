@@ -116,6 +116,7 @@ final class FactoryManager
     }
 
     /**
+     * @param  DtoInspector<T>  $inspector
      * @param  array<string, mixed>  $data
      * @return array<string, mixed>
      *
