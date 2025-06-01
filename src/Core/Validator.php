@@ -19,6 +19,7 @@ use ReflectionEnum;
 use ReflectionException;
 use ReflectionNamedType;
 use ReflectionParameter;
+use Throwable;
 use Ws\DataBridge\Exceptions\ValidationException;
 
 final class Validator
@@ -115,24 +116,21 @@ final class Validator
     /**
      * @return array<string,mixed>
      *
-     * @throws ValidationException
+     * @throws Throwable
      */
     public function validate(): array
     {
         $rules = DtoRuleBuilder::build($this->inspector, $this->rules, $this->attributes);
 
-        // Get the key map to handle MapKey attributes
         $keyMap = $this->inspector->getKeyMap();
         $reverseKeyMap = array_flip($keyMap);
 
-        // Create a new rules array with mapped keys
         $mappedRules = [];
         foreach ($rules as $key => $rule) {
             $mappedKey = $keyMap[$key] ?? $key;
             $mappedRules[$mappedKey] = $rule;
         }
 
-        // Create a new messages array with mapped keys
         $mappedMessages = [];
         foreach ($this->messages as $key => $message) {
             $parts = explode('.', $key, 2);
@@ -152,7 +150,6 @@ final class Validator
             /** @var array<string,array<string>> $errors */
             $errors = $validator->errors()->toArray();
 
-            // Map error keys back to property names
             $mappedErrors = [];
             foreach ($errors as $key => $messages) {
                 $propertyName = $reverseKeyMap[$key] ?? $key;
@@ -163,10 +160,9 @@ final class Validator
             throw new ValidationException($this->errors);
         }
 
-        /** @var array<string,mixed> */
+        /** @var array<string,mixed> $validated */
         $validated = $validator->validated();
 
-        // Map validated keys back to property names
         $mappedValidated = [];
         foreach ($validated as $key => $value) {
             $propertyName = $reverseKeyMap[$key] ?? $key;
@@ -177,9 +173,9 @@ final class Validator
     }
 
     /**
-     * Validate "an toàn": trả false khi lỗi.
-     *
      * @return array<string,mixed>|false
+     *
+     * @throws Throwable
      */
     public function validateSafe(): array|false
     {
@@ -215,8 +211,6 @@ final class Validator
     }
 
     /**
-     * Try to cast a parameter value to its appropriate type.
-     *
      * @param  array<string,mixed>  $attributes
      * @return array<string,mixed>
      *
