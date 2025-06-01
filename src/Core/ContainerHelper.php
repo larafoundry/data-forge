@@ -19,7 +19,7 @@ final class ContainerHelper
      *
      * @throws InvalidArgumentException|ReflectionException
      */
-    public static function makeInstance(string $class, array $data): object
+    public static function makeInstance(string $class, array $data)
     {
         if (! class_exists($class)) {
             throw new InvalidArgumentException("Class $class not found");
