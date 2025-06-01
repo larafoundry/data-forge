@@ -50,7 +50,16 @@ final class DtoRuleBuilder
             };
         }
 
+        $acceptedKeys = $inspector->getAcceptedKeys();
+
         foreach ($customRules as $field => $fieldRules) {
+            // Check if the field exists in the DTO before adding rules for it
+            if (! in_array($field, $acceptedKeys, true)) {
+                throw new InvalidArgumentException(
+                    "Cannot add validation rules for field '$field' because it does not exist in the DTO."
+                );
+            }
+
             $rules[$field] = array_merge($rules[$field] ?? [], $fieldRules);
         }
 
