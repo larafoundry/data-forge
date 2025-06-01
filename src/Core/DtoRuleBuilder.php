@@ -6,16 +6,17 @@ namespace Ws\DataBridge\Core;
 
 use Closure;
 use InvalidArgumentException;
+use ReflectionException;
 
 final class DtoRuleBuilder
 {
     /**
-     * Gộp rule hệ thống (required, nullable, type-check) với rule tuỳ chỉnh.
-     *
      * @param  DtoInspector<object>  $inspector
-     * @param  array<string,string[]>  $customRules  Đã chuẩn hoá bởi withRules()
-     * @param  array<string,mixed>  $attributes  Payload gốc
+     * @param  array<string,string[]>  $customRules
+     * @param  array<string,mixed>  $attributes
      * @return array<string, array<string|Closure>>
+     *
+     * @throws ReflectionException
      */
     public static function build(
         DtoInspector $inspector,
@@ -26,27 +27,20 @@ final class DtoRuleBuilder
         $keyMap = $inspector->getKeyMap();
         $reverseKeyMap = array_flip($keyMap);
 
-        /* ---- required -------------------------------------------------- */
         foreach ($inspector->getRequiredKeys() as $key) {
-            $mappedKey = $keyMap[$key] ?? $key;
             $rules[$key][] = 'required';
         }
 
-        /* ---- nullable + type check ------------------------------------- */
         foreach ($inspector->getAcceptedKeys() as $key) {
-            // nullable nếu property cho phép null và không nằm trong required
             if (! in_array($key, $inspector->getRequiredKeys(), true)
                 && $inspector->isTypeAcceptedForKey($key, null)
             ) {
                 $rules[$key][] = 'nullable';
             }
 
-            // closure kiểm tra đúng kiểu
             $rules[$key][] = static function (string $attribute, mixed $value, Closure $fail) use ($inspector, $reverseKeyMap) {
-                // Map the attribute back to the property name if needed
                 $propertyName = $reverseKeyMap[$attribute] ?? $attribute;
 
-                // chỉ check khi attribute thực sự được gửi lên
                 if (array_key_exists($propertyName, $inspector->getReflection()->getDefaultProperties()) && $value === null) {
                     return;
                 }
@@ -56,12 +50,10 @@ final class DtoRuleBuilder
             };
         }
 
-        /* ---- merge custom rules ---------------------------------------- */
         foreach ($customRules as $field => $fieldRules) {
             $rules[$field] = array_merge($rules[$field] ?? [], $fieldRules);
         }
 
-        /* ---- các key "lạ" trong payload → bỏ qua ----------------------- */
         foreach (array_keys($attributes) as $key) {
             $propertyName = $reverseKeyMap[$key] ?? $key;
             if (! isset($rules[$propertyName])) {
@@ -72,26 +64,17 @@ final class DtoRuleBuilder
         return $rules;
     }
 
-    /* ------------------------------------------------------------------ */
-    /*  Helpers */
-    /* ------------------------------------------------------------------ */
-
     /**
-     * Chuẩn hoá rule về **mảng phẳng string**.
-     *
-     * @param  string|array<mixed>  $raw
      * @return array<string>
      *
      * @throws InvalidArgumentException
      */
     public static function normalizeFieldRules(string|array $raw): array
     {
-        // pipe-string: 'required|min:3'
         if (is_string($raw)) {
             return array_map('trim', explode('|', $raw));
         }
 
-        // mảng phẳng string
         $result = [];
         foreach ($raw as $item) {
             if (! is_string($item)) {
