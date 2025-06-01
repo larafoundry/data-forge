@@ -125,6 +125,7 @@ final class DtoInspector
     /**
      * Get the mapped key for a property if it has a MapKey attribute.
      * Otherwise, return the property name.
+     *
      * @throws ReflectionException
      */
     public function getMappedKey(string $propertyName): string
@@ -150,6 +151,7 @@ final class DtoInspector
      * Get a map of property names to input keys.
      *
      * @return array<string, string>
+     *
      * @throws ReflectionException
      */
     public function getKeyMap(): array
