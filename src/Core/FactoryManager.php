@@ -148,8 +148,25 @@ final class FactoryManager
     {
         try {
             $reflection = new ReflectionClass($this->class);
-            if (! $reflection->hasProperty($property)) {
-                throw new InvalidArgumentException("Property '$property' does not exist on $this->class");
+
+            // Check if it's a class property
+            $isProperty = $reflection->hasProperty($property);
+
+            // Check if it's a constructor parameter
+            $isConstructorParam = false;
+            $constructor = $reflection->getConstructor();
+            if ($constructor !== null) {
+                foreach ($constructor->getParameters() as $param) {
+                    if ($param->getName() === $property) {
+                        $isConstructorParam = true;
+                        break;
+                    }
+                }
+            }
+
+            // Throw exception only if it's neither a property nor a constructor parameter
+            if (! $isProperty && ! $isConstructorParam) {
+                throw new InvalidArgumentException("'$property' does not exist as a property or constructor parameter on $this->class");
             }
         } catch (ReflectionException $e) {
             throw new InvalidArgumentException("Failed to validate property: {$e->getMessage()}", 0, $e);
