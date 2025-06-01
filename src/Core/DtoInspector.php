@@ -105,21 +105,40 @@ final class DtoInspector
     /** @noinspection PhpUnhandledExceptionInspection */
     public function isTypeAcceptedForKey(string $key, mixed $value): bool
     {
-        if (! $this->reflection->hasProperty($key)) {
+        if ($this->reflection->hasProperty($key)) {
+            $prop = $this->reflection->getProperty($key);
+            $t = $prop->getType();
+            if ($t === null) {
+                return true;
+            }
+
+            if ($t instanceof ReflectionNamedType) {
+                return self::checkNamedType($t, $value);
+            }
+
+            return self::checkCompositeType($t, $value);
+        }
+
+        $ctor = $this->reflection->getConstructor();
+        if ($ctor === null) {
             return false;
         }
+        foreach ($ctor->getParameters() as $param) {
+            if ($param->getName() === $key) {
+                $t = $param->getType();
+                if ($t === null) {
+                    return true;
+                }
 
-        $prop = $this->reflection->getProperty($key);
-        $t = $prop->getType();
-        if ($t === null) {
-            return true;
+                if ($t instanceof ReflectionNamedType) {
+                    return self::checkNamedType($t, $value);
+                }
+
+                return self::checkCompositeType($t, $value);
+            }
         }
 
-        if ($t instanceof ReflectionNamedType) {
-            return self::checkNamedType($t, $value);
-        }
-
-        return self::checkCompositeType($t, $value);
+        return false;
     }
 
     /**

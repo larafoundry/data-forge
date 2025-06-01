@@ -121,7 +121,6 @@ final class Validator
     public function validate(): array
     {
         $rules = DtoRuleBuilder::build($this->inspector, $this->rules, $this->attributes);
-
         $keyMap = $this->inspector->getKeyMap();
         $reverseKeyMap = array_flip($keyMap);
 
