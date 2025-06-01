@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ws\DataBridge\Concerns;
 
 use ReflectionException;
+use Throwable;
 use Ws\DataBridge\Core\ContainerHelper;
 use Ws\DataBridge\Core\DtoInspector;
 use Ws\DataBridge\Core\FactoryManager;
@@ -18,7 +19,7 @@ trait AsDto
      *
      * @param  array<string, mixed>  $attributes
      *
-     * @throws ValidationException|ReflectionException
+     * @throws ValidationException|ReflectionException|Throwable
      */
     public static function fromArray(array $attributes): static
     {
