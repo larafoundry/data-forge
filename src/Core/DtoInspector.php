@@ -4,8 +4,9 @@
 
 declare(strict_types=1);
 
-namespace Ws\DataBridge\Core;
+namespace Axiom\DataForge\Core;
 
+use Axiom\DataForge\Attributes\MapKey;
 use ReflectionClass;
 use ReflectionException;
 use ReflectionIntersectionType;
@@ -14,7 +15,6 @@ use ReflectionParameter;
 use ReflectionProperty;
 use ReflectionType;
 use ReflectionUnionType;
-use Ws\DataBridge\Attributes\MapKey;
 
 /**
  * @template T of object

@@ -2,8 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Ws\DataBridge\Core;
+namespace Axiom\DataForge\Core;
 
+use Axiom\DataForge\Exceptions\ValidationException;
 use BackedEnum;
 use Carbon\Carbon;
 use Carbon\CarbonImmutable;
@@ -19,7 +20,6 @@ use ReflectionException;
 use ReflectionNamedType;
 use ReflectionParameter;
 use Throwable;
-use Ws\DataBridge\Exceptions\ValidationException;
 
 final class Validator
 {

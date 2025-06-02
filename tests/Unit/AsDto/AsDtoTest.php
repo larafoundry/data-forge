@@ -6,11 +6,11 @@ declare(strict_types=1);
 
 namespace Tests\Unit\AsDto;
 
+use Axiom\DataForge\Exceptions\ValidationException;
 use Tests\Unit\AsDto\Objects\BasicDto;
 use Tests\Unit\AsDto\Objects\DtoWithMessages;
 use Tests\Unit\AsDto\Objects\DtoWithRules;
 use Tests\Unit\AsDto\Objects\EnumType;
-use Ws\DataBridge\Exceptions\ValidationException;
 
 it('can create a DTO from array with valid data', function () {
     $data = [

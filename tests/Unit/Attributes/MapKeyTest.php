@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Attributes;
 
+use Axiom\DataForge\Core\ContainerHelper;
+use Axiom\DataForge\Core\DtoInspector;
+use Axiom\DataForge\Core\Validator;
+use Axiom\DataForge\Exceptions\ValidationException;
 use PHPUnit\Framework\TestCase;
 use Tests\Unit\Attributes\Objects\DtoWithMapKey;
-use Ws\DataBridge\Core\ContainerHelper;
-use Ws\DataBridge\Core\DtoInspector;
-use Ws\DataBridge\Core\Validator;
-use Ws\DataBridge\Exceptions\ValidationException;
 
 class MapKeyTest extends TestCase
 {

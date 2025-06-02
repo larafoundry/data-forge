@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Attributes\Objects;
 
-use Ws\DataBridge\Attributes\MapKey;
+use Axiom\DataForge\Attributes\MapKey;
 
 class DtoWithMapKey
 {

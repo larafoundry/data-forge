@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Ws\DataBridge\Exceptions;
+namespace Axiom\DataForge\Exceptions;
 
 use Exception;
 

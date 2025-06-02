@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\AsDto\Objects;
 
-use Ws\DataBridge\Concerns\AsDto;
+use Axiom\DataForge\Concerns\AsDto;
 
 class DtoWithRules
 {

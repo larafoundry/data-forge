@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Core;
 
+use Axiom\DataForge\Core\DtoInspector;
+use Axiom\DataForge\Core\DtoRuleBuilder;
 use Closure;
 use InvalidArgumentException;
 use Tests\Unit\Core\Objects\TestDto;
-use Ws\DataBridge\Core\DtoInspector;
-use Ws\DataBridge\Core\DtoRuleBuilder;
 
 test('normalizeFieldRules handles pipe-string correctly', function () {
     $rules = DtoRuleBuilder::normalizeFieldRules('required|min:3|max:10');

@@ -4,15 +4,15 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Core;
 
+use Axiom\DataForge\Core\DtoInspector;
+use Axiom\DataForge\Core\DtoRuleBuilder;
+use Axiom\DataForge\Core\Validator;
+use Axiom\DataForge\Exceptions\ValidationException;
 use Illuminate\Container\Container;
 use Illuminate\Translation\ArrayLoader;
 use Illuminate\Translation\Translator;
 use Illuminate\Validation\Factory;
 use Tests\Unit\Core\Objects\TestDto;
-use Ws\DataBridge\Core\DtoInspector;
-use Ws\DataBridge\Core\DtoRuleBuilder;
-use Ws\DataBridge\Core\Validator;
-use Ws\DataBridge\Exceptions\ValidationException;
 
 test('max validation works correctly', function () {
     $inspector = new DtoInspector(TestDto::class);

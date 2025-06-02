@@ -6,6 +6,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit;
 
+use Axiom\DataForge\Core\ContainerHelper;
 use InvalidArgumentException;
 use Tests\Unit\ContainerHelper\Objects\Address;
 use Tests\Unit\ContainerHelper\Objects\ImmutablePoint;
@@ -14,7 +15,6 @@ use Tests\Unit\ContainerHelper\Objects\Product;
 use Tests\Unit\ContainerHelper\Objects\ProtectedConstructObject;
 use Tests\Unit\ContainerHelper\Objects\User;
 use TypeError;
-use Ws\DataBridge\Core\ContainerHelper;
 
 test('can create instance with constructor parameters', function () {
     $class = new class('', 0)

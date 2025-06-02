@@ -6,9 +6,9 @@ declare(strict_types=1);
 
 namespace Tests\Unit\AsDto;
 
+use Axiom\DataForge\Exceptions\ValidationException;
 use PHPUnit\Framework\TestCase;
 use Tests\Unit\AsDto\Objects\DtoWithRules;
-use Ws\DataBridge\Exceptions\ValidationException;
 
 class DtoWithRulesTest extends TestCase
 {

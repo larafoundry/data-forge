@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace Ws\DataBridge\Concerns;
+namespace Axiom\DataForge\Concerns;
 
+use Axiom\DataForge\Core\ContainerHelper;
+use Axiom\DataForge\Core\DtoInspector;
+use Axiom\DataForge\Core\FactoryManager;
+use Axiom\DataForge\Core\Validator;
+use Axiom\DataForge\Exceptions\ValidationException;
 use ReflectionException;
 use Throwable;
-use Ws\DataBridge\Core\ContainerHelper;
-use Ws\DataBridge\Core\DtoInspector;
-use Ws\DataBridge\Core\FactoryManager;
-use Ws\DataBridge\Core\Validator;
-use Ws\DataBridge\Exceptions\ValidationException;
 
 trait AsDto
 {

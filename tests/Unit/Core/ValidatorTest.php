@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Core;
 
+use Axiom\DataForge\Core\DtoInspector;
+use Axiom\DataForge\Core\Validator;
+use Axiom\DataForge\Exceptions\ValidationException;
 use Tests\Unit\Core\Objects\TestDto;
-use Ws\DataBridge\Core\DtoInspector;
-use Ws\DataBridge\Core\Validator;
-use Ws\DataBridge\Exceptions\ValidationException;
 
 // Define a simple DTO class for testing
 

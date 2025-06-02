@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Tests\Unit\AsDto\Objects;
 
+use Axiom\DataForge\Concerns\AsDto;
 use Carbon\Carbon;
 use Carbon\CarbonImmutable;
 use DateTime;
 use DateTimeImmutable;
-use Ws\DataBridge\Concerns\AsDto;
 
 final class ComplexObject
 {

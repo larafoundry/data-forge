@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Core;
 
+use Axiom\DataForge\Core\RandomDataGenerator;
 use DateTimeImmutable;
 use DateTimeInterface;
 use Faker\Factory;
 use PHPUnit\Framework\TestCase;
 use ReflectionNamedType;
-use Ws\DataBridge\Core\RandomDataGenerator;
 
 class RandomDataGeneratorTest extends TestCase
 {

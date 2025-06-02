@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Ws\DataBridge\Core;
+namespace Axiom\DataForge\Core;
 
+use Axiom\DataForge\Exceptions\ValidationException;
 use InvalidArgumentException;
 use ReflectionException;
-use Ws\DataBridge\Exceptions\ValidationException;
 
 /**
  * Factory for multiple objects of the same type.

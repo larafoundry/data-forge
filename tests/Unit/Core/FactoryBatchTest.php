@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Core;
 
+use Axiom\DataForge\Core\FactoryBatch;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
-use Ws\DataBridge\Core\FactoryBatch;
 
 class FactoryBatchTest extends TestCase
 {

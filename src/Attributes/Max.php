@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Ws\DataBridge\Attributes;
+namespace Axiom\DataForge\Attributes;
 
 use Attribute;
 
