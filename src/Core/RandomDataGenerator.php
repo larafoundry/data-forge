@@ -160,11 +160,11 @@ final class RandomDataGenerator
     private function generateEnum(string $enumClass)
     {
         // Validate that the class exists and is an enum
-        if (!class_exists($enumClass)) {
+        if (! class_exists($enumClass)) {
             throw new RuntimeException("Enum class '$enumClass' does not exist");
         }
 
-        if (!enum_exists($enumClass)) {
+        if (! enum_exists($enumClass)) {
             throw new RuntimeException("Class '$enumClass' exists but is not an enum");
         }
 
