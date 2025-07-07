@@ -160,11 +160,11 @@ final class RandomDataGenerator
     private function generateEnum(string $enumClass)
     {
         // Validate that the class exists and is an enum
-        if (! class_exists($enumClass)) {
+        if (!class_exists($enumClass)) {
             throw new RuntimeException("Enum class '$enumClass' does not exist");
         }
 
-        if (! enum_exists($enumClass)) {
+        if (!enum_exists($enumClass)) {
             throw new RuntimeException("Class '$enumClass' exists but is not an enum");
         }
 
@@ -178,8 +178,9 @@ final class RandomDataGenerator
 
             $case = $cases[array_rand($cases)];
 
+            // Use ReflectionEnum::getCase to get the enum case instance
             /** @var T */
-            return $enumClass::{$case->getName()};
+            return $reflectionEnum->getCase($case->getName())->getValue();
         } catch (ReflectionException $e) {
             throw new RuntimeException("Failed to reflect enum class '$enumClass': ".$e->getMessage(), 0, $e);
         }
