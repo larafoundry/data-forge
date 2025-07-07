@@ -15,7 +15,7 @@ class ValidationException extends Exception
     {
         $errorMessages = [];
         foreach ($this->errors as $messages) {
-            // We know from type hint that $messages is an array, but PHPStan doesn't know
+            // We know from a type hint that $messages is an array, but PHPStan doesn't know
             // we can simply iterate directly as that's what we need
             foreach ($messages as $message) {
                 $errorMessages[] = $message;
