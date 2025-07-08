@@ -8,6 +8,7 @@ use Axiom\DataForge\Casters\Contracts\ICaster;
 
 /**
  * Class IntegerCaster
+ *
  * @implements ICaster<int>
  */
 class IntegerCaster implements ICaster
