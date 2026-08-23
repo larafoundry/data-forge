@@ -1,17 +1,22 @@
 {
   "name": "axiom/data-forge",
+  "type": "library",
   "description": "A typed DTO and data handling package for PHP.",
+  "homepage": "https://github.com/larafoundry/data-forge",
   "require": {
     "php": "^8.1",
-    "illuminate/support": "^10.48",
-    "illuminate/validation": "^10.48",
-    "illuminate/container": "^10.48",
-    "illuminate/translation": "^10.48"
+    "illuminate/support": "^10.48 || ^11.0 || ^12.0 || ^13.0",
+    "illuminate/validation": "^10.48 || ^11.0 || ^12.0 || ^13.0",
+    "illuminate/container": "^10.48 || ^11.0 || ^12.0 || ^13.0",
+    "illuminate/translation": "^10.48 || ^11.0 || ^12.0 || ^13.0",
+    "nesbot/carbon": "^2.72.6 || ^3.8.4"
   },
   "keywords": [
-    "data",
-    "forge",
-    "axiom"
+    "data transfer object",
+    "dto",
+    "laravel",
+    "validation",
+    "hydration"
   ],
   "license": "MIT",
   "autoload": {
@@ -30,19 +35,24 @@
       "email": "nguyentrung.ws.555@gmail.com"
     }
   ],
+  "support": {
+    "issues": "https://github.com/larafoundry/data-forge/issues",
+    "source": "https://github.com/larafoundry/data-forge"
+  },
   "scripts": {
+    "audit": "composer audit --locked",
     "pint": "vendor/bin/pint",
+    "pint:test": "vendor/bin/pint --test",
     "phpstan": "vendor/bin/phpstan",
     "test": "vendor/bin/phpunit"
   },
-  "minimum-stability": "stable",
   "require-dev": {
     "laravel/pint": "^1.13 <1.21",
     "phpstan/phpstan": "^2.1",
-    "phpunit/phpunit": "^10.5.63",
-    "psy/psysh": "^0.12"
+    "phpunit/phpunit": "^10.5.63"
   },
   "config": {
+    "sort-packages": true,
     "platform": {
       "php": "8.1.0"
     }

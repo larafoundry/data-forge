@@ -118,12 +118,8 @@ Focused areas:
 - Public API: `src/Concerns/AsDto.php`.
 
 Use the nearest focused tests first, then run the required checks before
-commit. For confirmed bugs or intentional improvements, add one log file:
-
-- bugs: `logs/bugs/<short-kebab-name>.md`
-- improvements: `logs/improvements/<short-kebab-name>.md`
-
-Do not combine unrelated bug/improvement notes in one log file.
+commit. Keep the pull request linked to the issue or discussion that explains
+the confirmed bug or intentional improvement.
 
 ## Documentation
 
