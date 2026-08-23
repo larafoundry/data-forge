@@ -1,0 +1,101 @@
+name: Task
+description: Track maintenance, documentation, CI, refactor, or review follow-up work.
+title: "[Task]: "
+labels:
+  - "type: task"
+  - "needs triage"
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use tasks for project work that is not a bug report or feature request.
+
+        Examples: CI maintenance, documentation cleanup, dependency updates, review follow-ups, refactors, and release chores.
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: Task summary
+      description: What needs to be done?
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: Why is this task needed now? Link related issues, pull requests, logs, or discussions.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      description: Choose the area that best matches this task.
+      options:
+        - Validation core
+        - DTO inspector
+        - Rule builder
+        - MapKey
+        - Nested DTO
+        - ArrayOf collections
+        - Auto cast and transformers
+        - Enum handling
+        - AsDto public API
+        - Container helper
+        - Attribute constraints
+        - Exceptions and error contracts
+        - CI and tooling
+        - Documentation
+        - Release
+        - Not sure
+    validations:
+      required: true
+
+  - type: textarea
+    id: deliverables
+    attributes:
+      label: Deliverables
+      description: List the concrete files, docs, checks, or outcomes expected from this task.
+      placeholder: |
+        - Update...
+        - Add...
+        - Verify...
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: How will maintainers know this task is complete?
+      placeholder: |
+        - ...
+        - ...
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Required checks for related pull requests
+      options:
+        - label: PHPStan passes with `vendor/bin/phpstan analyse --configuration=phpstan.neon.dist` or `composer phpstan`.
+          required: false
+        - label: Tests pass with `vendor/bin/phpunit` or `composer test`.
+          required: false
+        - label: Laravel Pint has been run with `vendor/bin/pint` or `composer pint`.
+          required: false
+
+  - type: checkboxes
+    id: logs
+    attributes:
+      label: Documentation and logs
+      options:
+        - label: This task requires a documentation update.
+          required: false
+        - label: This task requires an improvement log under `logs/improvements/`.
+          required: false
+        - label: This task does not require documentation or log changes.
+          required: false

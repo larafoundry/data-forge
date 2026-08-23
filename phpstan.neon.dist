@@ -1,0 +1,18 @@
+parameters:
+
+    paths:
+        - src/
+
+    tmpDir: build/phpstan
+
+    level: max
+
+    ignoreErrors:
+        - '#Trait Axiom\\DataForge\\Concerns\\AsDto is used zero times and is not analysed.#'
+        - '#Trait Axiom\\DataForge\\Concerns\\AsStrictInputDto is used zero times and is not analysed.#'
+    
+    treatPhpDocTypesAsCertain: false
+
+#    ignoreErrors:
+#        - '#PHPDoc tag @var#'
+#

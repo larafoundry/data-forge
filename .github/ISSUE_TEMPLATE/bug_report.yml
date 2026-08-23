@@ -1,0 +1,132 @@
+name: Bug report
+description: Report a reproducible problem in Data Forge.
+title: "[Bug]: "
+labels:
+  - "type: bug"
+  - "needs triage"
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve Data Forge. Please include enough detail for maintainers to reproduce the issue.
+
+        If this report becomes a confirmed fix, the pull request should add one log file under `logs/bugs/<short-kebab-name>.md`.
+
+  - type: input
+    id: version
+    attributes:
+      label: Data Forge version or commit
+      description: Use the Composer version, tag, branch, or commit SHA where the bug appears.
+      placeholder: "v0.1.0, main, or 1a2b3c4"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Affected area
+      description: Choose the area that best matches the problem.
+      options:
+        - Validation core
+        - DTO inspector
+        - Rule builder
+        - MapKey
+        - Nested DTO
+        - ArrayOf collections
+        - Auto cast and transformers
+        - Enum handling
+        - AsDto public API
+        - Container helper
+        - Attribute constraints
+        - Exceptions and error contracts
+        - CI and tooling
+        - Documentation
+        - Not sure
+    validations:
+      required: true
+
+  - type: input
+    id: php-version
+    attributes:
+      label: PHP version
+      placeholder: "8.1.0, 8.2.18, 8.3.7"
+    validations:
+      required: true
+
+  - type: input
+    id: dependencies
+    attributes:
+      label: Laravel/Illuminate dependency versions
+      description: Include the relevant illuminate/* versions if this involves validation, collections, container, or HTTP input.
+      placeholder: "illuminate/validation 10.48.0, illuminate/support 10.48.0"
+    validations:
+      required: false
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction steps
+      description: List the smallest set of steps needed to trigger the bug.
+      placeholder: |
+        1. Define this DTO...
+        2. Call fromArray() with...
+        3. Observe...
+    validations:
+      required: true
+
+  - type: textarea
+    id: minimal-example
+    attributes:
+      label: Minimal DTO and input example
+      description: Paste the smallest DTO, rules, attributes, and input payload that reproduce the issue.
+      render: php
+      placeholder: |
+        final class ExampleDto
+        {
+            use AsDto;
+
+            public function __construct(
+                public readonly string $name,
+            ) {}
+        }
+
+        ExampleDto::fromArray(['name' => 123]);
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: What should Data Forge do instead?
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: What happened? Include exception class names and validation error shape when relevant.
+    validations:
+      required: true
+
+  - type: textarea
+    id: output
+    attributes:
+      label: Error output or stack trace
+      description: Paste relevant output only. Remove secrets and unrelated application data.
+      render: shell
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Pre-flight checks
+      options:
+        - label: I searched existing issues and logs for a duplicate.
+          required: true
+        - label: I can reproduce this with the current package code or a specific released version.
+          required: true
+        - label: I am willing to submit a pull request for this issue.
+          required: false

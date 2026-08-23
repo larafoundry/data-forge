@@ -1,0 +1,96 @@
+name: Feature request
+description: Suggest a new capability or public behavior for Data Forge.
+title: "[Feature]: "
+labels:
+  - "type: feature"
+  - "needs triage"
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for proposing an improvement. Please focus on the user-facing behavior and the DTO workflow it enables.
+
+        If this becomes an accepted implementation, the pull request should add one log file under `logs/improvements/<short-kebab-name>.md`.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or use case
+      description: What are you trying to do that Data Forge does not support well today?
+      placeholder: "When building DTOs from..., I need..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+      description: Describe the API, attribute, validation behavior, casting behavior, or hydration behavior you want.
+    validations:
+      required: true
+
+  - type: textarea
+    id: example
+    attributes:
+      label: Example usage
+      description: Show the code you would like to write after this feature exists.
+      render: php
+    validations:
+      required: false
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Primary area
+      description: Choose the area that best matches the feature.
+      options:
+        - Validation core
+        - DTO inspector
+        - Rule builder
+        - MapKey
+        - Nested DTO
+        - ArrayOf collections
+        - Auto cast and transformers
+        - Enum handling
+        - AsDto public API
+        - Container helper
+        - Attribute constraints
+        - Exceptions and error contracts
+        - CI and tooling
+        - Documentation
+        - Not sure
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Describe current workarounds, other libraries, or simpler options you considered.
+    validations:
+      required: false
+
+  - type: dropdown
+    id: compatibility
+    attributes:
+      label: Compatibility impact
+      description: Estimate how this affects existing users.
+      options:
+        - No breaking change expected
+        - Possible breaking change
+        - Breaking change required
+        - Not sure
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: implementation
+    attributes:
+      label: Implementation expectations
+      options:
+        - label: This feature should include tests.
+          required: true
+        - label: This feature should update README, docs, or examples when user-facing behavior changes.
+          required: false
+        - label: I am willing to submit a pull request for this feature.
+          required: false

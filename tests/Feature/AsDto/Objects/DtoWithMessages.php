@@ -1,0 +1,48 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Tests\Feature\AsDto\Objects;
+
+use Axiom\DataForge\Concerns\AsDto;
+
+class DtoWithMessages
+{
+    use AsDto;
+
+    public function __construct(
+        public readonly string $name,
+        public readonly int $age,
+        public readonly string $email
+    ) {}
+
+    public static function rules(): array
+    {
+        return [
+            'name' => [
+                'required',
+                'string',
+                'min:3',
+            ],
+            'age' => [
+                'required',
+                'integer',
+                'min:18',
+            ],
+            'email' => [
+                'required',
+                'email',
+            ],
+        ];
+    }
+
+    public static function messages(): array
+    {
+        return [
+            'name.required' => 'The name field is mandatory',
+            'name.min' => 'The name must be at least :min characters',
+            'age.min' => 'You must be at least :min years old',
+            'email.email' => 'Please provide a valid email address',
+        ];
+    }
+}

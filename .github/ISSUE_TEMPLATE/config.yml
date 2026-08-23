@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Read the README
+    url: https://github.com/trungdev05/data-forge#readme
+    about: Review installation, examples, supported features, and local development commands.
+  - name: Local development checks
+    url: https://github.com/trungdev05/data-forge#development
+    about: Before opening a pull request, run PHPStan, PHPUnit, and Laravel Pint.

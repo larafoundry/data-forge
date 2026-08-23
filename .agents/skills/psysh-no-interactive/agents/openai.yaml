@@ -1,0 +1,4 @@
+interface:
+  display_name: "PsySH No Interaction"
+  short_description: "Run PsySH scripts without prompt traps"
+  default_prompt: "Use $psysh-no-interactive to run a PHP package verification snippet through PsySH without heredoc or shell quoting bugs."

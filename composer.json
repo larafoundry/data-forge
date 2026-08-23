@@ -1,0 +1,50 @@
+{
+  "name": "axiom/data-forge",
+  "description": "A typed DTO and data handling package for PHP.",
+  "require": {
+    "php": "^8.1",
+    "illuminate/support": "^10.48",
+    "illuminate/validation": "^10.48",
+    "illuminate/container": "^10.48",
+    "illuminate/translation": "^10.48"
+  },
+  "keywords": [
+    "data",
+    "forge",
+    "axiom"
+  ],
+  "license": "MIT",
+  "autoload": {
+    "psr-4": {
+      "Axiom\\DataForge\\": "src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Tests\\": "tests/"
+    }
+  },
+  "authors": [
+    {
+      "name": "trungdev05",
+      "email": "nguyentrung.ws.555@gmail.com"
+    }
+  ],
+  "scripts": {
+    "pint": "vendor/bin/pint",
+    "phpstan": "vendor/bin/phpstan",
+    "test": "vendor/bin/phpunit"
+  },
+  "minimum-stability": "stable",
+  "require-dev": {
+    "laravel/pint": "^1.13 <1.21",
+    "phpstan/phpstan": "^2.1",
+    "phpunit/phpunit": "^10.5.63",
+    "psy/psysh": "^0.12"
+  },
+  "config": {
+    "platform": {
+      "php": "8.1.0"
+    }
+  }
+}
