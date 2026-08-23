@@ -1,7 +1,7 @@
 # Data Forge
 
 Data Forge is a PHP 8.1+ package for building typed DTOs from arrays and
-validating their input.
+validating their input in applications using Illuminate 10 through 13.
 
 It uses reflection to inspect DTO constructors and public properties, Laravel's
 validator for rules and messages, and a focused hydration pipeline for nested
@@ -26,11 +26,28 @@ DTOs, collections, enums, and date-like objects.
 
 ## Installation
 
-Install the package with Composer:
+Data Forge has not published a tagged release or Packagist package yet. Install
+the current development version directly from this GitHub repository by adding
+a VCS repository to your application's `composer.json`:
+
+```json
+{
+    "repositories": [
+        {
+            "type": "vcs",
+            "url": "https://github.com/larafoundry/data-forge"
+        }
+    ]
+}
+```
+
+Then require the package from the long-lived `master` branch:
 
 ```bash
-composer require axiom/data-forge
+composer require axiom/data-forge:dev-master
 ```
+
+Pin a commit in production until a SemVer release is available.
 
 For local development in this repository:
 
@@ -285,8 +302,8 @@ between possible object branches.
 
 ## Auto-Casting
 
-Data Forge can cast compatible string values before validation for supported
-target types, including:
+Data Forge can cast compatible string values during its validation and
+hydration pipeline for supported target types, including:
 
 - backed enums
 - `DateTime`
@@ -315,13 +332,14 @@ more specific subtype when you need targeted recovery.
 Useful local commands:
 
 ```bash
+composer audit
 composer phpstan
 composer test
-composer pint
+composer pint:test
 ```
 
-Before committing, keep the project clean by running PHPStan, the test suite,
-and Laravel Pint.
+Before committing, keep the project clean by running the dependency audit,
+PHPStan, the test suite, and Laravel Pint.
 
 ## License
 

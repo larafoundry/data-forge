@@ -24,7 +24,7 @@ body:
     id: context
     attributes:
       label: Context
-      description: Why is this task needed now? Link related issues, pull requests, logs, or discussions.
+      description: Why is this task needed now? Link related issues, pull requests, or discussions.
     validations:
       required: true
 
@@ -89,13 +89,11 @@ body:
           required: false
 
   - type: checkboxes
-    id: logs
+    id: documentation
     attributes:
-      label: Documentation and logs
+      label: Documentation
       options:
-        - label: This task requires a documentation update.
+        - label: This task requires a public documentation update.
           required: false
-        - label: This task requires an improvement log under `logs/improvements/`.
-          required: false
-        - label: This task does not require documentation or log changes.
+        - label: This task does not require documentation changes.
           required: false

@@ -10,8 +10,6 @@ body:
       value: |
         Thanks for proposing an improvement. Please focus on the user-facing behavior and the DTO workflow it enables.
 
-        If this becomes an accepted implementation, the pull request should add one log file under `logs/improvements/<short-kebab-name>.md`.
-
   - type: textarea
     id: problem
     attributes:
