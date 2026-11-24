@@ -93,7 +93,7 @@ final class SpatieSchemaReflectionPortTest extends TestCase
     {
         $this->expectException(InspectionException::class);
         $this->expectExceptionMessage(
-            "PHPDoc item type 'Tests\\Unit\\Schema\\SpatieSchemaDoesNotExist' of field 'items' on "
+            "PHPDoc type 'Tests\\Unit\\Schema\\SpatieSchemaDoesNotExist' of field 'items' on "
             .SpatieSchemaMissingItemClassFixtureDto::class.' does not exist; check the class name and its use import'
         );
 

@@ -5,25 +5,37 @@ declare(strict_types=1);
 namespace Axiom\DataForge\Schema;
 
 use Axiom\DataForge\Exceptions\InspectionException;
+use Closure;
 use Illuminate\Support\Collection;
+use phpDocumentor\Reflection\DocBlock\Tags\InvalidTag;
 use phpDocumentor\Reflection\DocBlock\Tags\Param;
+use phpDocumentor\Reflection\DocBlock\Tags\Var_;
 use phpDocumentor\Reflection\DocBlockFactory;
 use phpDocumentor\Reflection\DocBlockFactoryInterface;
+use phpDocumentor\Reflection\PseudoTypes\ArrayShape;
 use phpDocumentor\Reflection\PseudoTypes\Generic;
+use phpDocumentor\Reflection\PseudoTypes\ObjectShape;
 use phpDocumentor\Reflection\Type;
 use phpDocumentor\Reflection\Types\AbstractList;
+use phpDocumentor\Reflection\Types\AggregatedType;
 use phpDocumentor\Reflection\Types\Array_;
 use phpDocumentor\Reflection\Types\Compound;
 use phpDocumentor\Reflection\Types\Context;
 use phpDocumentor\Reflection\Types\ContextFactory;
 use phpDocumentor\Reflection\Types\Integer;
+use phpDocumentor\Reflection\Types\Null_;
 use phpDocumentor\Reflection\Types\Nullable;
 use phpDocumentor\Reflection\Types\Object_;
+use phpDocumentor\Reflection\Types\Self_;
+use phpDocumentor\Reflection\Types\Static_;
+use phpDocumentor\Reflection\Types\This;
 use ReflectionClass;
+use ReflectionMethod;
 use ReflectionNamedType;
 use ReflectionParameter;
 use ReflectionProperty;
 use ReflectionType;
+use ReflectionUnionType;
 
 /**
  * Reads the DTO item type of an `array` or `Collection` field from its
@@ -31,12 +43,16 @@ use ReflectionType;
  *
  * Parsing and name resolution are delegated to phpDocumentor. PHPStan and
  * Psalm specific tags (`@phpstan-param`, `@psalm-var`, ...) are not read.
+ *
+ * Rule: when the PHPDoc of such a field names a DTO anywhere, it must be
+ * exactly one supported DTO list form. Anything else is an InspectionException,
+ * never silently ignored.
  */
 final class DocBlockItemType
 {
     private const ARRAY = 'array';
 
-    private const COLLECTION = 'collection';
+    private const SUPPORTED_FORMS = "'Dto[]', 'array<int, Dto>', or 'Collection<int, Dto>'";
 
     private static ?DocBlockFactoryInterface $factory = null;
 
@@ -61,13 +77,15 @@ final class DocBlockItemType
             return null;
         }
 
+        self::assertDocCommentsAvailable();
+
         $declared = [];
         if ($property !== null && ($type = self::varType($property)) !== null) {
-            $declared['@var'] = self::itemClass($type, $container, $class, $name);
+            $declared['@var'] = self::itemClass($type, $container, $property->getDeclaringClass()->getName(), $class, $name);
         }
 
         if ($parameter !== null && ($type = self::paramType($parameter)) !== null) {
-            $declared['@param'] = self::itemClass($type, $container, $class, $name);
+            $declared['@param'] = self::itemClass($type, $container, $parameter->getDeclaringClass()?->getName() ?? $class, $class, $name);
         }
 
         if (count(array_unique(array_map(static fn (?string $item): string => $item ?? '', $declared))) > 1) {
@@ -80,21 +98,46 @@ final class DocBlockItemType
     }
 
     /**
-     * @return self::ARRAY|self::COLLECTION|null
+     * `array`, a Collection class, false for an unsupported native union that
+     * contains one of them, or null when the field is not a collection at all.
+     *
+     * @return self::ARRAY|class-string<Collection<array-key, mixed>>|false|null
      */
-    private static function container(?ReflectionType $nativeType): ?string
+    private static function container(?ReflectionType $nativeType): string|false|null
     {
+        if ($nativeType instanceof ReflectionUnionType) {
+            foreach ($nativeType->getTypes() as $type) {
+                if (self::container($type) !== null) {
+                    return false;
+                }
+            }
+
+            return null;
+        }
+
         if (! ($nativeType instanceof ReflectionNamedType)) {
             return null;
         }
 
-        if ($nativeType->getName() === 'array') {
+        $typeName = $nativeType->getName();
+        if ($typeName === 'array') {
             return self::ARRAY;
         }
 
-        return is_a($nativeType->getName(), Collection::class, true) ? self::COLLECTION : null;
+        return is_a($typeName, Collection::class, true) ? $typeName : null;
     }
 
+    /**
+     * @throws InspectionException
+     */
+    private static function assertDocCommentsAvailable(): void
+    {
+        (new ReflectionClass(self::class))->getDocComment() !== false || throw new InspectionException('PHPDoc comments are not available at runtime (opcache.save_comments=0); Data Forge reads collection item types from PHPDoc, so enable opcache.save_comments');
+    }
+
+    /**
+     * @throws InspectionException
+     */
     private static function varType(ReflectionProperty $property): ?Type
     {
         $docComment = $property->getDocComment();
@@ -102,26 +145,39 @@ final class DocBlockItemType
             return null;
         }
 
-        $tags = self::factory()
-            ->create($docComment, self::context($property->getDeclaringClass()))
-            ->getTagsWithTypeByName('var');
+        $owner = self::declaringTraitOrClass(
+            $property->getDeclaringClass(),
+            static fn (ReflectionClass $trait): bool => $trait->hasProperty($property->getName())
+                && $trait->getProperty($property->getName())->getDocComment() === $docComment
+        );
 
-        return $tags === [] ? null : $tags[0]->getType();
+        foreach (self::tags($docComment, $owner, 'var') as $tag) {
+            if ($tag instanceof Var_) {
+                return $tag->getType();
+            }
+        }
+
+        return null;
     }
 
+    /**
+     * @throws InspectionException
+     */
     private static function paramType(ReflectionParameter $parameter): ?Type
     {
-        $docComment = $parameter->getDeclaringFunction()->getDocComment();
-        $declaringClass = $parameter->getDeclaringClass();
-        if ($docComment === false || $declaringClass === null) {
+        $constructor = $parameter->getDeclaringFunction();
+        $docComment = $constructor->getDocComment();
+        if ($docComment === false || ! ($constructor instanceof ReflectionMethod)) {
             return null;
         }
 
-        $tags = self::factory()
-            ->create($docComment, self::context($declaringClass))
-            ->getTagsWithTypeByName('param');
+        $owner = self::declaringTraitOrClass(
+            $constructor->getDeclaringClass(),
+            static fn (ReflectionClass $trait): bool => $trait->getFileName() === $constructor->getFileName()
+                && $trait->hasMethod($constructor->getName())
+        );
 
-        foreach ($tags as $tag) {
+        foreach (self::tags($docComment, $owner, 'param') as $tag) {
             if ($tag instanceof Param && $tag->getVariableName() === $parameter->getName()) {
                 return $tag->getType();
             }
@@ -131,144 +187,214 @@ final class DocBlockItemType
     }
 
     /**
-     * @param  self::ARRAY|self::COLLECTION  $container
+     * PHP reports trait members as declared by the class that uses the trait,
+     * but their PHPDoc must be resolved against the trait file's imports.
+     *
+     * @param  ReflectionClass<object>  $class
+     * @param  Closure(ReflectionClass<object>): bool  $declares
+     * @return ReflectionClass<object>
+     */
+    private static function declaringTraitOrClass(ReflectionClass $class, Closure $declares): ReflectionClass
+    {
+        foreach ($class->getTraits() as $trait) {
+            if ($declares($trait)) {
+                return self::declaringTraitOrClass($trait, $declares);
+            }
+        }
+
+        return $class;
+    }
+
+    /**
+     * @param  ReflectionClass<object>  $owner
+     * @return list<object>
+     *
+     * @throws InspectionException
+     */
+    private static function tags(string $docComment, ReflectionClass $owner, string $tagName): array
+    {
+        $tags = self::factory()->create($docComment, self::context($owner))->getTagsByName($tagName);
+
+        foreach ($tags as $tag) {
+            if ($tag instanceof InvalidTag) {
+                throw new InspectionException(
+                    "PHPDoc tag '@$tagName {$tag}' on {$owner->getName()} cannot be parsed: ".$tag->getException()?->getMessage()
+                );
+            }
+        }
+
+        return array_values($tags);
+    }
+
+    /**
+     * @param  self::ARRAY|class-string<Collection<array-key, mixed>>|false  $container
+     * @param  class-string  $selfClass  the class `self` refers to
      * @param  class-string  $class
      * @return class-string|null
      *
      * @throws InspectionException
      */
-    private static function itemClass(Type $type, string $container, string $class, string $name): ?string
+    private static function itemClass(Type $type, string|false $container, string $selfClass, string $class, string $name): ?string
     {
-        $members = $type instanceof Compound ? iterator_to_array($type) : [$type];
+        if (! self::namesDto($type, $selfClass, $class, $name)) {
+            return null;
+        }
+
+        if ($container === false) {
+            throw new InspectionException(
+                "Field '$name' on $class declares DTO items in PHPDoc '$type' but has a union native type; use 'array' or a Collection class"
+            );
+        }
 
         $items = [];
+        $members = $type instanceof Compound ? iterator_to_array($type) : [$type];
         foreach ($members as $member) {
-            if ($member instanceof Nullable) {
-                $member = $member->getActualType();
-            }
+            $member = $member instanceof Nullable ? $member->getActualType() : $member;
 
-            $item = self::memberItemClass($member, $container, $class, $name);
+            $item = self::listItemClass($member, $container, $selfClass);
             if ($item !== null) {
                 $items[$item] = true;
+
+                continue;
             }
+
+            if ($member instanceof Null_ || self::isContainerType($member, $container)) {
+                continue;
+            }
+
+            $nativeType = $container === self::ARRAY ? 'array' : $container;
+
+            throw new InspectionException(
+                "PHPDoc '$type' of field '$name' on $class is not a supported DTO list for native type '$nativeType' (at '$member'); use ".self::SUPPORTED_FORMS
+            );
         }
 
         if (count($items) > 1) {
             throw new InspectionException("Field '$name' on $class declares more than one DTO item type in PHPDoc '$type'");
         }
 
-        /** @var class-string|null */
+        /** @var class-string */
         return array_key_first($items);
     }
 
     /**
-     * @param  self::ARRAY|self::COLLECTION  $container
-     * @param  class-string  $class
-     * @return class-string|null
+     * The DTO item class when $member is exactly a supported DTO list form.
      *
-     * @throws InspectionException
-     */
-    private static function memberItemClass(Type $member, string $container, string $class, string $name): ?string
-    {
-        if ($member instanceof Generic) {
-            $types = $member->getTypes();
-            $item = self::dtoClass($types[array_key_last($types)], $class, $name);
-            if ($item === null) {
-                return null;
-            }
-
-            if ($container !== self::COLLECTION || ! is_a(ltrim((string) $member->getFqsen(), '\\'), Collection::class, true)) {
-                throw new InspectionException(
-                    "PHPDoc '$member' of field '$name' on $class does not match its native type; use ".
-                    ($container === self::ARRAY ? "'{$item}[]' or 'array<int, $item>'" : "'Collection<int, $item>'")
-                );
-            }
-
-            self::assertListKey(count($types) > 1 ? $types[0] : null, $member, $class, $name);
-
-            return $item;
-        }
-
-        if ($member instanceof AbstractList) {
-            $item = self::dtoClass($member->getValueType(), $class, $name);
-            if ($item === null) {
-                return null;
-            }
-
-            if ($member::class !== Array_::class) {
-                throw new InspectionException(
-                    "PHPDoc '$member' of field '$name' on $class is not supported; use '{$item}[]' or 'array<int, $item>'"
-                );
-            }
-
-            self::assertListKey($member->getOriginalKeyType(), $member, $class, $name);
-
-            return $item;
-        }
-
-        return null;
-    }
-
-    /**
-     * @param  class-string  $class
+     * @param  self::ARRAY|class-string<Collection<array-key, mixed>>  $container
+     * @param  class-string  $selfClass
      * @return class-string|null
-     *
-     * @throws InspectionException
      */
-    private static function dtoClass(Type $value, string $class, string $name): ?string
+    private static function listItemClass(Type $member, string $container, string $selfClass): ?string
     {
-        if ($value instanceof Compound) {
-            $items = [];
-            foreach ($value as $member) {
-                $item = self::dtoClass($member, $class, $name);
-                if ($item !== null) {
-                    $items[] = $item;
-                }
-            }
-
-            if ($items === []) {
-                return null;
-            }
-
-            throw new InspectionException(
-                "Field '$name' on $class declares union item type '$value'; DTO collection items must have one DTO type"
-            );
+        if ($member::class === Array_::class) {
+            /** @var Array_ $member */
+            return self::isListKey($member->getOriginalKeyType())
+                ? self::dtoReference($member->getValueType(), $selfClass)
+                : null;
         }
 
-        if ($value instanceof Nullable && self::dtoClass($value->getActualType(), $class, $name) !== null) {
-            throw new InspectionException(
-                "Field '$name' on $class declares nullable item type '$value'; DTO collection items cannot be null"
-            );
-        }
-
-        if (! ($value instanceof Object_) || $value->getFqsen() === null) {
+        if (! ($member instanceof Generic) || $container === self::ARRAY) {
             return null;
         }
 
-        $itemClass = ltrim((string) $value->getFqsen(), '\\');
-        if (! class_exists($itemClass) && ! interface_exists($itemClass)) {
-            throw new InspectionException(
-                "PHPDoc item type '$itemClass' of field '$name' on $class does not exist; check the class name and its use import"
-            );
+        $arguments = $member->getTypes();
+        $annotatedClass = ltrim((string) $member->getFqsen(), '\\');
+        if (! is_a($container, $annotatedClass, true) || count($arguments) > 2) {
+            return null;
         }
+
+        return self::isListKey(count($arguments) === 2 ? $arguments[0] : null)
+            ? self::dtoReference($arguments[array_key_last($arguments)], $selfClass)
+            : null;
+    }
+
+    private static function isListKey(?Type $key): bool
+    {
+        return $key === null || $key instanceof Integer;
+    }
+
+    /**
+     * @param  class-string  $selfClass
+     * @return class-string|null
+     */
+    private static function dtoReference(Type $type, string $selfClass): ?string
+    {
+        if ($type instanceof Self_) {
+            return DtoClass::isDto($selfClass) ? $selfClass : null;
+        }
+
+        if ($type::class !== Object_::class) {
+            return null;
+        }
+
+        /** @var Object_ $type */
+        $itemClass = ltrim((string) $type->getFqsen(), '\\');
 
         return DtoClass::isDto($itemClass) ? $itemClass : null;
     }
 
     /**
+     * `array` on an array field, or the plain collection class in
+     * `Collection|Dto[]`.
+     *
+     * @param  self::ARRAY|class-string<Collection<array-key, mixed>>  $container
+     */
+    private static function isContainerType(Type $member, string $container): bool
+    {
+        if ($container === self::ARRAY) {
+            return $member::class === Array_::class && $member->getOriginalValueType() === null;
+        }
+
+        return $member::class === Object_::class
+            && $member->getFqsen() !== null
+            && is_a($container, ltrim((string) $member->getFqsen(), '\\'), true);
+    }
+
+    /**
+     * Whether $type names a DTO anywhere. Also rejects unknown classes, which
+     * usually mean a typo or a missing `use` import.
+     *
+     * @param  class-string  $selfClass
      * @param  class-string  $class
      *
      * @throws InspectionException
      */
-    private static function assertListKey(?Type $key, Type $member, string $class, string $name): void
+    private static function namesDto(Type $type, string $selfClass, string $class, string $name): bool
     {
-        if ($key === null || $key instanceof Integer) {
-            return;
+        $children = match (true) {
+            $type instanceof AggregatedType => iterator_to_array($type),
+            $type instanceof Nullable => [$type->getActualType()],
+            $type instanceof ArrayShape, $type instanceof ObjectShape => array_map(
+                static fn (object $item): Type => $item->getValue(),
+                $type->getItems()
+            ),
+            $type instanceof AbstractList => array_filter([$type->getOriginalKeyType(), $type->getOriginalValueType()]),
+            $type instanceof Generic => $type->getTypes(),
+            default => [],
+        };
+
+        foreach ($children as $child) {
+            if (self::namesDto($child, $selfClass, $class, $name)) {
+                return true;
+            }
         }
 
-        throw new InspectionException(
-            "PHPDoc '$member' of field '$name' on $class must use int keys; DTO collections are lists"
-        );
+        if ($type instanceof Self_ || $type instanceof Static_ || $type instanceof This) {
+            return DtoClass::isDto($selfClass);
+        }
+
+        if (! ($type instanceof Object_) || $type->getFqsen() === null) {
+            return false;
+        }
+
+        $referencedClass = ltrim((string) $type->getFqsen(), '\\');
+        if (! class_exists($referencedClass) && ! interface_exists($referencedClass)) {
+            throw new InspectionException(
+                "PHPDoc type '$referencedClass' of field '$name' on $class does not exist; check the class name and its use import"
+            );
+        }
+
+        return DtoClass::isDto($referencedClass);
     }
 
     private static function factory(): DocBlockFactoryInterface
@@ -277,10 +403,10 @@ final class DocBlockItemType
     }
 
     /**
-     * @param  ReflectionClass<object>  $class
+     * @param  ReflectionClass<object>  $owner
      */
-    private static function context(ReflectionClass $class): Context
+    private static function context(ReflectionClass $owner): Context
     {
-        return self::$contexts[$class->getName()] ??= (new ContextFactory())->createFromReflector($class);
+        return self::$contexts[$owner->getName()] ??= (new ContextFactory())->createFromReflector($owner);
     }
 }

@@ -25,6 +25,8 @@ DTOs, collections, enums, and date-like objects.
 - `illuminate/support`, `illuminate/validation`, `illuminate/container`, and
   `illuminate/translation` 10.48+, 11, 12, or 13
 - Composer
+- `opcache.save_comments` left enabled (the PHP default), because collection
+  item types are read from PHPDoc
 
 ## Project Status
 
@@ -389,18 +391,32 @@ resolves `use` imports and aliases:
 | Native type | Supported PHPDoc | Result |
 | --- | --- | --- |
 | `Collection` (or a subclass) | `Collection<UserDto>`, `Collection<int, UserDto>`, `UserDto[]`, `Collection\|UserDto[]` | the declared collection class of `UserDto` |
-| `array` | `UserDto[]`, `array<UserDto>`, `array<int, UserDto>` | a list of `UserDto` |
+| `array` | `UserDto[]`, `array<UserDto>`, `array<int, UserDto>`, `array\|UserDto[]` | a list of `UserDto` |
 
-Nullable forms (`?…` or `…|null`) are supported. Types are read from the
-constructor's `@param` tag or the property's `@var` tag; if both are present
-they must agree. Item types that are not DTOs (such as `Collection<int, string>`)
-leave the field untouched.
+- Nullable forms (`?…` or `…|null`) are supported.
+- `self[]` refers to the DTO that declares the field, for tree-shaped DTOs.
+- A generic may name the field's class or one of its parents or interfaces,
+  for example `Enumerable<int, UserDto>` on a `Collection` field.
+- Types are read from the constructor's `@param` tag or the property's `@var`
+  tag; if both are present they must agree. PHPDoc declared in a trait is
+  resolved against the trait file's `use` imports.
+- Item types that are not DTOs (such as `Collection<int, string>`) leave the
+  field untouched. Untyped fields are never hydrated.
 
 PHPStan and Psalm specific tags (`@phpstan-param`, `@psalm-var`, ...) are not
-read. A PHPDoc that names a DTO item type in a form Data Forge cannot honor
-throws `InspectionException` instead of being ignored: an unknown class (check
-the `use` import), `list<UserDto>` or other PHPStan-only types, string keys,
-nullable items, or a union of DTO item types.
+read. When the PHPDoc of an `array` or `Collection` field names a DTO anywhere,
+it must be exactly one of the forms above. Anything else throws
+`InspectionException` instead of being ignored, for example:
+
+- an unknown class (check the name and its `use` import)
+- a malformed tag such as `array<int, UserDto $users`
+- `list<UserDto>`, `array{0: UserDto}`, or other PHPStan-only types
+- string keys, nullable items, or nested lists such as `UserDto[][]`
+- a DTO list mixed with other types, such as `UserDto[]|string[]`
+- more than one DTO item type, or a union native type such as `array|Collection`
+
+A `Collection` subclass whose constructor cannot take the list of items throws
+`InstantiationException`.
 
 Nested DTO values are hydrated through Data Forge's validator and hydrator
 pipeline. A custom `fromArray()` override is treated as a root-level public

@@ -7,6 +7,7 @@ namespace Axiom\DataForge\Hydration;
 use Axiom\DataForge\Attributes\DateFormat;
 use Axiom\DataForge\Exceptions\DataForgeException;
 use Axiom\DataForge\Exceptions\InspectionException;
+use Axiom\DataForge\Exceptions\InstantiationException;
 use Axiom\DataForge\Exceptions\ValidationException;
 use Axiom\DataForge\Schema\DtoClass;
 use Axiom\DataForge\Schema\DtoInspector;
@@ -74,7 +75,7 @@ final class DtoHydrator
 
                 // The PHPDoc item type is only read for `array` and Collection fields.
                 $collectionClass = $inspector->getTypeSpecForKey($name)?->namedClass();
-                $attributes[$name] = $collectionClass === null ? $items : new $collectionClass($items);
+                $attributes[$name] = $collectionClass === null ? $items : self::makeCollection($collectionClass, $items, $name);
 
                 continue;
             }
@@ -171,6 +172,21 @@ final class DtoHydrator
             return ContainerHelper::makeInstance($class, $validator->validate());
         } catch (ValidationException $e) {
             throw new ValidationException(self::prefixErrors($e->errors, $path));
+        }
+    }
+
+    /**
+     * @param  class-string  $collectionClass
+     * @param  list<object>  $items
+     *
+     * @throws InstantiationException
+     */
+    private static function makeCollection(string $collectionClass, array $items, string $name): object
+    {
+        try {
+            return new $collectionClass($items);
+        } catch (Throwable $e) {
+            throw new InstantiationException("Failed to create $collectionClass for field '$name'", 0, $e);
         }
     }
 
