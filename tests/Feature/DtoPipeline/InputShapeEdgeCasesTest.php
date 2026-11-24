@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Feature\DtoPipeline;
 
-use Axiom\DataForge\Attributes\ArrayOf;
 use Axiom\DataForge\Attributes\DateFormat;
 use Axiom\DataForge\Concerns\AsDto;
 use Axiom\DataForge\Concerns\AsStrictInputDto;
@@ -234,7 +233,6 @@ final class EdgeStrictListFixtureDto
      * @param  Collection<int, EdgeStrictChildFixtureDto>  $items
      */
     public function __construct(
-        #[ArrayOf(EdgeStrictChildFixtureDto::class)]
         public readonly Collection $items,
     ) {}
 }
@@ -247,7 +245,6 @@ final class EdgeListFixtureDto
      * @param  Collection<int, EdgeChildFixtureDto>  $items
      */
     public function __construct(
-        #[ArrayOf(EdgeChildFixtureDto::class)]
         public readonly Collection $items,
     ) {}
 }
@@ -330,7 +327,6 @@ final class EdgeRulePathsFixtureDto
     public function __construct(
         public readonly array $tags,
         public readonly Collection $labels,
-        #[ArrayOf(EdgeChildFixtureDto::class)]
         public readonly Collection $items,
     ) {}
 
@@ -411,7 +407,6 @@ final class EdgeNestedListFixtureDto
      * @param  Collection<int, EdgeChildFixtureDto>  $items
      */
     public function __construct(
-        #[ArrayOf(EdgeChildFixtureDto::class)]
         public readonly Collection $items,
     ) {}
 }
@@ -439,7 +434,6 @@ final class EdgeIndexedItemRuleFixtureDto
      * @param  Collection<int, EdgeChildFixtureDto>  $items
      */
     public function __construct(
-        #[ArrayOf(EdgeChildFixtureDto::class)]
         public readonly Collection $items,
     ) {}
 

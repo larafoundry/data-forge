@@ -25,6 +25,9 @@ DTOs, collections, enums, and date-like objects.
 - `illuminate/support`, `illuminate/validation`, `illuminate/container`, and
   `illuminate/translation` 10.48+, 11, 12, or 13
 - Composer
+- the `tokenizer` extension (enabled by default in PHP)
+- `opcache.save_comments` left enabled (the PHP default), because collection
+  item types are read from PHPDoc
 
 ## Project Status
 
@@ -116,7 +119,7 @@ $trusted = new UserDto('Jane Doe', 28);
 
 Use constructors for already-trusted canonical data. Use `fromArray()`,
 `fromJson()`, or `fromArrayable()` when untrusted input must be validated.
-That same trust boundary applies when a nested property or `#[ArrayOf]` item is
+That same trust boundary applies when a nested property or collection item is
 already an instance of the expected DTO class.
 
 ## Unknown Input Keys
@@ -173,9 +176,9 @@ trait AsAppDto
 ```
 
 `AsDto` does not support `iterable` typed fields because item type and
-traversal semantics are ambiguous at the data boundary. Use `array` for raw
-arrays, or `Illuminate\Support\Collection` with `#[ArrayOf]` for typed nested
-DTO collections.
+traversal semantics are ambiguous at the data boundary. Use `array` or
+`Illuminate\Support\Collection` with a DTO item type in PHPDoc for typed nested
+DTO collections, and without one for raw data.
 
 ## Validation Rules
 
@@ -341,13 +344,13 @@ the canonical `profile` key at the root fails the same way:
 
 ## Nested DTOs
 
-Type a property as another DTO to hydrate a nested object, or use
-`Illuminate\Support\Collection` with `#[ArrayOf]` for a list of DTOs:
+Type a property as another DTO to hydrate a nested object. For a list of DTOs,
+type the property as `array` or `Illuminate\Support\Collection` and declare the
+item type in PHPDoc:
 
 ```php
 <?php
 
-use Axiom\DataForge\Attributes\ArrayOf;
 use Axiom\DataForge\Concerns\AsDto;
 use Illuminate\Support\Collection;
 
@@ -357,12 +360,12 @@ final class TeamDto
 
     /**
      * @param  Collection<int, UserDto>  $members
+     * @param  UserDto[]  $reviewers
      */
     public function __construct(
         public readonly UserDto $owner,
-
-        #[ArrayOf(UserDto::class)]
         public readonly Collection $members,
+        public readonly array $reviewers,
     ) {}
 }
 
@@ -372,16 +375,64 @@ $team = TeamDto::fromArray([
         ['name' => 'Grace', 'age' => 45],
         ['name' => 'Linus', 'age' => 28],
     ],
+    'reviewers' => [
+        ['name' => 'Barbara', 'age' => 52],
+    ],
 ]);
+
+$team->members;   // Collection of UserDto
+$team->reviewers; // list of UserDto
 ```
 
-The item type comes from `#[ArrayOf]`, never from PHPDoc. The PHPDoc is for
-static analysis and IDEs.
+The same PHPDoc drives runtime hydration, static analysis, and IDEs, so the item
+type is declared once. Data Forge reads traditional PHPDoc with
+[phpDocumentor](https://github.com/phpDocumentor/ReflectionDocBlock), which
+resolves `use` imports and aliases:
+
+| Native type | Supported PHPDoc | Result |
+| --- | --- | --- |
+| `Collection` (or a subclass) | `Collection<UserDto>`, `Collection<int, UserDto>`, `UserDto[]`, `array<int, UserDto>`, `Collection\|UserDto[]` | the declared collection class of `UserDto` |
+| `array` | `UserDto[]`, `array<UserDto>`, `array<int, UserDto>`, `array\|UserDto[]` | a list of `UserDto` |
+
+- Nullable forms (`?…` or `…|null`) are supported.
+- `self[]` refers to the DTO that declares the field, for tree-shaped DTOs.
+- A generic may name the field's class or one of its parents or interfaces,
+  for example `Enumerable<int, UserDto>` on a `Collection` field.
+- Types are read from the constructor's `@param` tag or the property's `@var`
+  tag; if both are present they must agree. A `@param` tag must name its
+  parameter; a `@var` tag that names a different property is ignored.
+- Data Forge trusts phpDocumentor to parse PHPDoc and resolve class names and
+  does not patch its results. phpDocumentor resolves PHPDoc in a trait with
+  the imports of the class using the trait, so use fully-qualified class names
+  in trait PHPDoc. Group imports with sub-namespaces
+  (`use App\{Dto\UserDto}`) are not resolved; use `use App\Dto\UserDto;`.
+- Item types that are not DTO objects (such as `Collection<int, string>` or
+  `class-string<UserDto>[]`) leave the field untouched. Untyped fields are
+  never hydrated.
+- Default values are written by the DTO author and used as they are; they are
+  not hydrated.
+
+PHPStan and Psalm specific tags (`@phpstan-param`, `@psalm-var`, ...) are not
+read. When the PHPDoc of an `array` or `Collection` field names a DTO anywhere,
+it must be exactly one of the forms above. Anything else throws
+`InspectionException` instead of being ignored, for example:
+
+- an unknown class (check the name and its `use` import)
+- a malformed tag such as `array<int, UserDto $users`
+- `list<UserDto>`, `array{0: UserDto}`, conditional types, or other PHPStan-only types
+- keys other than `int` (including `positive-int`), nullable items, nested
+  lists such as `UserDto[][]`, or `static[]` and `parent[]`
+- a DTO list mixed with other types, such as `UserDto[]|string[]`
+- more than one DTO item type, or a union or intersection native type such as `array|Collection`
+- more than one `@param` (or `@var`) tag for the same field
+
+A `Collection` subclass whose constructor cannot take the list of items, or
+does not keep it, throws `InstantiationException`.
 
 Nested DTO values are hydrated through Data Forge's validator and hydrator
 pipeline. A custom `fromArray()` override is treated as a root-level public
-entry point and is not called when that DTO appears as a nested property or an
-`#[ArrayOf]` item. Keep transforms required for nested usage in input that is
+entry point and is not called when that DTO appears as a nested property or a
+collection item. Keep transforms required for nested usage in input that is
 compatible with the constructor, validation rules, or supported casting
 metadata.
 
@@ -390,14 +441,14 @@ validation by itself. Treat constructors as trusted-data APIs; use a root DTO
 entry point when array input needs boundary validation before nested DTO
 construction.
 
-If a caller passes an already-instantiated nested DTO or `#[ArrayOf]` item of
+If a caller passes an already-instantiated nested DTO or collection item of
 the expected class into `fromArray()`, Data Forge preserves that object as
 trusted input. It does not rerun the child DTO's static `rules()` for that
 instance. Validate untrusted nested data before instantiating the child DTO, or
 pass the nested payload as an array so the normal boundary validation pipeline
 can run.
 
-For `#[ArrayOf]` nested DTO collections, validation errors are aggregated across
+For nested DTO collections, validation errors are aggregated across
 invalid items so callers can see paths such as `people.0.name` and
 `people.1.name` in one error bag.
 
@@ -435,8 +486,8 @@ Package exceptions live under `Axiom\DataForge\Exceptions`:
   It extends `ValidationException`, so existing validation handlers catch it
   too. Its `$errors` keep the exact raw input path.
 - `InspectionException`: the DTO class itself is misconfigured (for example an
-  unsupported rule value, a bad `#[DateFormat]` timezone, or `#[ArrayOf]` on a
-  field that is not a `Collection` of DTOs)
+  unsupported rule value, a bad `#[DateFormat]` timezone, or a collection
+  PHPDoc that names an unknown class or an unsupported DTO item form)
 - `InstantiationException`: the DTO could not be constructed from validated
   data
 

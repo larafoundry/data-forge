@@ -5,11 +5,14 @@
   "homepage": "https://github.com/larafoundry/data-forge",
   "require": {
     "php": "^8.1",
-    "illuminate/support": "^10.48 || ^11.0 || ^12.0 || ^13.0",
-    "illuminate/validation": "^10.48 || ^11.0 || ^12.0 || ^13.0",
+    "ext-tokenizer": "*",
     "illuminate/container": "^10.48 || ^11.0 || ^12.0 || ^13.0",
+    "illuminate/support": "^10.48 || ^11.0 || ^12.0 || ^13.0",
     "illuminate/translation": "^10.48 || ^11.0 || ^12.0 || ^13.0",
-    "nesbot/carbon": "^2.72.6 || ^3.8.4"
+    "illuminate/validation": "^10.48 || ^11.0 || ^12.0 || ^13.0",
+    "nesbot/carbon": "^2.72.6 || ^3.8.4",
+    "phpdocumentor/reflection-docblock": "^6.0",
+    "phpdocumentor/type-resolver": "^2.0"
   },
   "keywords": [
     "data transfer object",

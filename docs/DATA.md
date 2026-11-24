@@ -11,9 +11,10 @@ contracts, deterministic output, plain errors, and no hidden magic.
 
 ### 1) The Contract Is The Source Of Truth
 
-DTO constructor types, public property types, attributes, and validation rules
-define the runtime contract. PHPDoc generics document that contract for static
-analysis and IDEs, but runtime hydration never reads them.
+DTO constructor types, public property types, attributes, validation rules, and
+the DTO item type in the PHPDoc of `array` and `Collection` fields define the
+runtime contract. Only traditional `@param` and `@var` tags are read; PHPStan
+and Psalm specific tags such as `@phpstan-param` are not.
 
 Implementation must follow that contract exactly. Do not add defensive behavior
 that contradicts or weakens it.
@@ -25,7 +26,7 @@ explicit Laravel compatibility path, and `Stringable` rule objects are accepted
 for Laravel's stringable rule builders.
 
 If the contract says `string`, invalid input must fail. If the contract says
-`#[ArrayOf(UserDto::class)] Collection`, the package must hydrate a collection
+`@param Collection<int, UserDto> $users`, the package must hydrate a collection
 of `UserDto` objects or report why it cannot.
 
 ### 2) Fail Loudly, Fail Early
@@ -84,8 +85,8 @@ Allowed examples:
 - backed enum value to enum instance
 - date string to configured date object
 - nested array to nested DTO
-- array of nested records to typed collection when `#[ArrayOf]` declares the
-  item class
+- array of nested records to a list or `Collection` of DTOs when the field's
+  PHPDoc declares the DTO item class
 
 Forbidden examples:
 
@@ -99,29 +100,32 @@ Forbidden examples:
 Runtime type safety and static type hints must move together.
 
 When PHP cannot express the full type directly, PHPDoc must complete the
-contract. For example, collection DTO fields must declare both the runtime type
-and item type:
+contract. For example, collection DTO fields declare the runtime type in PHP and
+the item type in PHPDoc:
 
 ```php
-use Axiom\DataForge\Attributes\ArrayOf;
 use Illuminate\Support\Collection;
 
 /**
  * @param Collection<int, UserDto> $users
+ * @param TagDto[] $tags
  */
 public function __construct(
-    #[ArrayOf(UserDto::class)]
     public readonly Collection $users,
+    public readonly array $tags,
 ) {}
 ```
 
-The runtime type tells PHP what the property is. The attribute tells Data Forge
-how to hydrate it. The PHPDoc tells phpstan and IDEs what each item is.
-Runtime hydration must not infer collection item classes from PHPDoc alone.
+The runtime type tells PHP what the property is. The PHPDoc tells Data Forge,
+phpstan, and IDEs what each item is, so the item type is declared once. Parsing
+and `use`-import resolution are done by phpDocumentor, never by hand-written
+parsers. A PHPDoc that names a DTO item type in a form Data Forge cannot honor
+(an unknown class, `list<>` and other PHPStan-only types, string keys, or a
+union of DTOs) is a configuration error, not something to ignore.
 
-`AsDto` intentionally does not support `iterable` fields. Use `array` when the
-contract is a raw PHP array, or `Collection` with `#[ArrayOf]` when the contract
-is a typed nested DTO collection.
+`AsDto` intentionally does not support `iterable` fields. Use `array` or
+`Collection` without a DTO item type when the contract is raw data, and with a
+DTO item type when the contract is a typed nested DTO collection.
 
 ### 7) Reflection Must Be Deterministic
 

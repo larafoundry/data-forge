@@ -63,6 +63,9 @@ final class TypeSpec
         return $resolvedType;
     }
 
+    /**
+     * @return class-string|null
+     */
     public function namedClass(): ?string
     {
         if (! ($this->reflectionType instanceof ReflectionNamedType) || $this->reflectionType->isBuiltin()) {

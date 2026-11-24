@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Input;
 
-use Axiom\DataForge\Attributes\ArrayOf;
 use Axiom\DataForge\Attributes\MapKey;
 use Axiom\DataForge\Concerns\AsDto;
 use Axiom\DataForge\Concerns\AsStrictInputDto;
@@ -125,7 +124,6 @@ final class NestedStrictCollectionParentFixture
      */
     public function __construct(
         #[MapKey('members')]
-        #[ArrayOf(NestedStrictChildFixture::class)]
         public readonly Collection $children,
     ) {}
 }

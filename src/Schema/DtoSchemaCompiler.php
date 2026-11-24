@@ -4,16 +4,13 @@ declare(strict_types=1);
 
 namespace Axiom\DataForge\Schema;
 
-use Axiom\DataForge\Attributes\ArrayOf;
 use Axiom\DataForge\Attributes\DateFormat;
 use Axiom\DataForge\Attributes\MapKey;
 use Axiom\DataForge\Exceptions\InspectionException;
 use DateTimeZone;
 use Exception;
-use Illuminate\Support\Collection;
 use ReflectionAttribute;
 use ReflectionClass;
-use ReflectionNamedType;
 use ReflectionParameter;
 use ReflectionProperty;
 use ReflectionType;
@@ -177,7 +174,7 @@ final class DtoSchemaCompiler
             $nullable,
             $hasDefault,
             $defaultValue,
-            self::arrayItemClass($reflection->getName(), $name, $type, $property, $parameter),
+            DocBlockItemType::resolve($reflection->getName(), $name, $type, $property, $parameter),
             $property,
             $parameter,
         );
@@ -215,45 +212,6 @@ final class DtoSchemaCompiler
         }
 
         return self::attributeInstance($attributes[0], $class, $name)->key;
-    }
-
-    /**
-     * @param  class-string  $class
-     * @return class-string|null
-     *
-     * @throws InspectionException
-     */
-    private static function arrayItemClass(
-        string $class,
-        string $name,
-        ?ReflectionType $type,
-        ?ReflectionProperty $property,
-        ?ReflectionParameter $parameter
-    ): ?string {
-        $attributes = $property?->getAttributes(ArrayOf::class) ?? [];
-        if ($attributes === [] && $parameter !== null) {
-            $attributes = $parameter->getAttributes(ArrayOf::class);
-        }
-
-        if ($attributes === []) {
-            return null;
-        }
-
-        $itemClass = self::attributeInstance($attributes[0], $class, $name)->class;
-
-        if (! class_exists($itemClass)) {
-            throw new InspectionException("Array item class '$itemClass' does not exist");
-        }
-
-        if (! DtoClass::isDto($itemClass)) {
-            throw new InspectionException("Array item class '$itemClass' for field '$name' on $class must be a DTO");
-        }
-
-        if (! ($type instanceof ReflectionNamedType) || ! is_a($type->getName(), Collection::class, true)) {
-            throw new InspectionException("Field '$name' on $class must be typed as ".Collection::class.' when using ArrayOf');
-        }
-
-        return $itemClass;
     }
 
     /**

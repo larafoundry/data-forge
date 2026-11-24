@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Feature\DtoPipeline;
 
-use Axiom\DataForge\Attributes\ArrayOf;
 use Axiom\DataForge\Attributes\MapKey;
 use Axiom\DataForge\Concerns\AsDto;
 use Axiom\DataForge\Concerns\AsStrictInputDto;
@@ -154,7 +153,6 @@ final class SpatieMappedCollectionParentDto
      */
     public function __construct(
         #[MapKey('people_data')]
-        #[ArrayOf(SpatieMappedCollectionProfileDto::class)]
         public readonly Collection $people,
     ) {}
 }

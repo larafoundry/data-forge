@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Schema;
 
-use Axiom\DataForge\Attributes\ArrayOf;
 use Axiom\DataForge\Attributes\MapKey;
 use Axiom\DataForge\Concerns\AsDto;
 use Axiom\DataForge\Exceptions\InspectionException;
@@ -90,12 +89,15 @@ final class SpatieSchemaReflectionPortTest extends TestCase
         $this->assertSame(SpatieSchemaMemberFixtureDto::class, $members->arrayItemClass);
     }
 
-    public function test_schema_rejects_missing_arrayof_item_classes(): void
+    public function test_schema_rejects_missing_phpdoc_item_classes(): void
     {
         $this->expectException(InspectionException::class);
-        $this->expectExceptionMessage('Array item class');
+        $this->expectExceptionMessage(
+            "PHPDoc type 'Tests\\Unit\\Schema\\SpatieSchemaDoesNotExist' of field 'items' on "
+            .SpatieSchemaMissingItemClassFixtureDto::class.' does not exist; check the class name and its use import'
+        );
 
-        DtoSchemaCompiler::compile(SpatieSchemaMissingArrayOfClassFixtureDto::class);
+        DtoSchemaCompiler::compile(SpatieSchemaMissingItemClassFixtureDto::class);
     }
 }
 
@@ -137,7 +139,6 @@ final class SpatieSchemaMappedCollectionFixtureDto
      * @param  Collection<int, SpatieSchemaMemberFixtureDto>  $members
      */
     public function __construct(
-        #[ArrayOf(SpatieSchemaMemberFixtureDto::class)]
         public readonly Collection $members,
     ) {}
 }
@@ -149,12 +150,14 @@ final class SpatieSchemaMemberFixtureDto
     public function __construct(public readonly string $name) {}
 }
 
-final class SpatieSchemaMissingArrayOfClassFixtureDto
+final class SpatieSchemaMissingItemClassFixtureDto
 {
     use AsDto;
 
+    /**
+     * @param  Collection<int, SpatieSchemaDoesNotExist>  $items
+     */
     public function __construct(
-        #[ArrayOf('Tests\\Unit\\Schema\\SpatieSchemaDoesNotExist')]
         public readonly Collection $items,
     ) {}
 }

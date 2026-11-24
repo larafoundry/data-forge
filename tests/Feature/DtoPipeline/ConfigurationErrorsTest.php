@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Feature\DtoPipeline;
 
-use Axiom\DataForge\Attributes\ArrayOf;
 use Axiom\DataForge\Attributes\DateFormat;
 use Axiom\DataForge\Attributes\StringLength;
 use Axiom\DataForge\Concerns\AsDto;
@@ -15,7 +14,6 @@ use Error;
 use Illuminate\Support\Collection;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
-use stdClass;
 
 /**
  * Mistakes in a DTO declaration are configuration problems for the developer,
@@ -60,16 +58,6 @@ final class ConfigurationErrorsTest extends TestCase
             );
             $this->assertInstanceOf(Error::class, $e->getPrevious());
         }
-    }
-
-    public function test_array_of_item_class_must_be_a_dto(): void
-    {
-        $this->expectException(InspectionException::class);
-        $this->expectExceptionMessage(
-            "Array item class 'stdClass' for field 'items' on ".NonDtoArrayOfFixtureDto::class.' must be a DTO'
-        );
-
-        NonDtoArrayOfFixtureDto::fromArray(['items' => []]);
     }
 
     public function test_rules_for_an_unknown_root_field_are_rejected(): void
@@ -160,19 +148,6 @@ final class RepeatedDateFormatFixtureDto
     ) {}
 }
 
-final class NonDtoArrayOfFixtureDto
-{
-    use AsDto;
-
-    /**
-     * @param  Collection<int, stdClass>  $items
-     */
-    public function __construct(
-        #[ArrayOf(stdClass::class)]
-        public readonly Collection $items,
-    ) {}
-}
-
 final class UnknownRuleFieldFixtureDto
 {
     use AsDto;
@@ -226,7 +201,6 @@ final class NumericItemKeyRuleFixtureDto
      * @param  Collection<int, ConfigurationItemFixtureDto>  $items
      */
     public function __construct(
-        #[ArrayOf(ConfigurationItemFixtureDto::class)]
         public readonly Collection $items,
     ) {}
 
