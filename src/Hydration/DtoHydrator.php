@@ -423,17 +423,33 @@ final class DtoHydrator
     private static function castFormattedDateValue(string $value, string $type, DateFormat $dateFormat): mixed
     {
         $timezone = $dateFormat->timezone !== null ? new DateTimeZone($dateFormat->timezone) : null;
+        $format = self::deterministicDateFormat($dateFormat->format);
 
         return match ($type) {
-            Carbon::class => Carbon::createFromFormat($dateFormat->format, $value, $dateFormat->timezone),
-            CarbonImmutable::class => CarbonImmutable::createFromFormat($dateFormat->format, $value, $dateFormat->timezone),
+            Carbon::class => Carbon::createFromFormat($format, $value, $dateFormat->timezone),
+            CarbonImmutable::class => CarbonImmutable::createFromFormat($format, $value, $dateFormat->timezone),
             DateTimeImmutable::class, DateTimeInterface::class => DateTimeImmutable::createFromFormat(
-                $dateFormat->format,
+                $format,
                 $value,
                 $timezone
             ),
-            DateTime::class => DateTime::createFromFormat($dateFormat->format, $value, $timezone),
+            DateTime::class => DateTime::createFromFormat($format, $value, $timezone),
             default => $value
         };
+    }
+
+    /**
+     * Without `!` or `|`, PHP fills fields missing from the format with the
+     * current time, so `d/m/Y` would hydrate with the wall-clock time of the
+     * request. Reset unparsed fields the same way Laravel's `date_format`
+     * rule does.
+     */
+    private static function deterministicDateFormat(string $format): string
+    {
+        if (str_contains($format, '!') || str_contains($format, '|')) {
+            return $format;
+        }
+
+        return '!'.$format;
     }
 }

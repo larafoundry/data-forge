@@ -67,7 +67,7 @@ final class DtoRuleBuilder
             if ($includeTypeRules) {
                 $rules[$key][] = static function (string $attribute, mixed $value, Closure $fail) use ($inspector, $key) {
                     if (! $inspector->isTypeAcceptedForKey($key, $value)) {
-                        $fail("The $attribute field has an invalid type.");
+                        $fail('The :attribute field has an invalid type.');
                     }
                 };
             }

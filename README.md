@@ -22,32 +22,28 @@ DTOs, collections, enums, and date-like objects.
 ## Requirements
 
 - PHP 8.1 or higher
+- `illuminate/support`, `illuminate/validation`, `illuminate/container`, and
+  `illuminate/translation` 10.48+, 11, 12, or 13
 - Composer
+
+## Project Status
+
+Data Forge is in **beta**. The behavior documented here is covered by tests and
+intended to stay stable, but the public API may still change before `1.0.0`.
+Breaking changes during the `0.x` series are listed in
+[CHANGELOG.md](CHANGELOG.md). Pin a minor version (for example `^0.1`) and
+review the changelog before upgrading.
 
 ## Installation
 
-Data Forge has not published a tagged release or Packagist package yet. Install
-the current development version directly from this GitHub repository by adding
-a VCS repository to your application's `composer.json`:
-
-```json
-{
-    "repositories": [
-        {
-            "type": "vcs",
-            "url": "https://github.com/larafoundry/data-forge"
-        }
-    ]
-}
-```
-
-Then require the package from the long-lived `master` branch:
+Install the beta from Packagist:
 
 ```bash
-composer require axiom/data-forge:dev-master
+composer require axiom/data-forge:^0.1@beta
 ```
 
-Pin a commit in production until a SemVer release is available.
+If your application's `minimum-stability` is already `beta` or lower, the
+`@beta` flag is not needed.
 
 For local development in this repository:
 
@@ -233,6 +229,49 @@ Validation errors are thrown as
 `Axiom\DataForge\Exceptions\ValidationException`, with structured errors
 available on the `$errors` property.
 
+## Validation Attributes
+
+Common constraints can be declared on constructor properties instead of in
+`rules()`:
+
+```php
+<?php
+
+use Axiom\DataForge\Attributes\DateFormat;
+use Axiom\DataForge\Attributes\Max;
+use Axiom\DataForge\Attributes\Min;
+use Axiom\DataForge\Attributes\StringLength;
+use Axiom\DataForge\Concerns\AsDto;
+
+final class MemberDto
+{
+    use AsDto;
+
+    public function __construct(
+        #[Min(18), Max(120)]
+        public readonly int $age,
+
+        #[StringLength(min: 3, max: 50)]
+        public readonly string $name,
+
+        #[DateFormat('d/m/Y', timezone: 'Asia/Ho_Chi_Minh')]
+        public readonly DateTimeImmutable $bornAt,
+    ) {}
+}
+```
+
+- `#[Min(n)]` / `#[Max(n)]` add Laravel `min:` / `max:` rules. On `int` and
+  `float` fields they compare numeric values.
+- `#[StringLength(min, max)]` adds `min:` and `max:` length rules. The defaults
+  are `0` and `255`.
+- `#[DateFormat(format, timezone)]` adds a `date_format:` rule and parses the
+  value with that exact format into the declared date-like type. Fields that
+  are not in the format are reset, not filled from the current time: `d/m/Y`
+  always yields midnight. An invalid timezone is reported as an
+  `InspectionException`.
+
+Attribute rules are combined with any rules returned by `rules()`.
+
 ## Mapped Input Keys
 
 Use `#[MapKey]` when incoming data uses different names than your DTO
@@ -267,7 +306,77 @@ When a field has `#[MapKey]`, the mapped external key is the accepted input key.
 The canonical property name is not treated as an alias. In flexible mode it is
 ignored; in strict mode it is rejected as an unknown input key.
 
+Validation errors use the external key, both in the error bag and in the
+message text. Nested paths are translated segment by segment:
+
+```php
+use Axiom\DataForge\Exceptions\ValidationException;
+
+final class AccountDto
+{
+    use AsDto;
+
+    public function __construct(
+        #[MapKey('user_profile')]
+        public readonly ProfileDto $profile,
+    ) {}
+}
+
+try {
+    AccountDto::fromArray([
+        'user_profile' => [
+            'first_name' => 'John',
+            'email' => 'john@example.com', // canonical name, not an accepted key
+        ],
+    ]);
+} catch (ValidationException $e) {
+    $e->errors;
+    // ['user_profile.email_address' => ['The email address field is required.']]
+}
+```
+
+The error path is `user_profile.email_address`, never `profile.email`. Sending
+the canonical `profile` key at the root fails the same way:
+`['user_profile' => ['The user profile field is required.']]`.
+
 ## Nested DTOs
+
+Type a property as another DTO to hydrate a nested object, or use
+`Illuminate\Support\Collection` with `#[ArrayOf]` for a list of DTOs:
+
+```php
+<?php
+
+use Axiom\DataForge\Attributes\ArrayOf;
+use Axiom\DataForge\Concerns\AsDto;
+use Illuminate\Support\Collection;
+
+final class TeamDto
+{
+    use AsDto;
+
+    /**
+     * @param  Collection<int, UserDto>  $members
+     */
+    public function __construct(
+        public readonly UserDto $owner,
+
+        #[ArrayOf(UserDto::class)]
+        public readonly Collection $members,
+    ) {}
+}
+
+$team = TeamDto::fromArray([
+    'owner' => ['name' => 'Ada', 'age' => 36],
+    'members' => [
+        ['name' => 'Grace', 'age' => 45],
+        ['name' => 'Linus', 'age' => 28],
+    ],
+]);
+```
+
+The item type comes from `#[ArrayOf]`, never from PHPDoc. The PHPDoc is for
+static analysis and IDEs.
 
 Nested DTO values are hydrated through Data Forge's validator and hydrator
 pipeline. A custom `fromArray()` override is treated as a root-level public
@@ -319,13 +428,33 @@ strings.
 
 Package exceptions live under `Axiom\DataForge\Exceptions`:
 
-- `DataForgeException`
-- `InspectionException`
-- `InstantiationException`
-- `ValidationException`
+- `DataForgeException`: base class for every package exception
+- `ValidationException`: input failed validation. Errors are available on
+  `$errors`, keyed by external input paths such as `members.1.name`.
+- `UnknownInputKeyException`: a strict DTO received keys it does not declare.
+  It extends `ValidationException`, so existing validation handlers catch it
+  too. Its `$errors` keep the exact raw input path.
+- `InspectionException`: the DTO class itself is misconfigured (for example an
+  unsupported rule value or a bad `#[DateFormat]` timezone)
+- `InstantiationException`: the DTO could not be constructed from validated
+  data
 
 Catch `DataForgeException` to handle all package-specific failures, or catch a
 more specific subtype when you need targeted recovery.
+
+## Known Limitations
+
+- Validation runs in stages: first the raw input shape, then nested DTOs and
+  collections, then root-level types. A payload with errors in more than one
+  stage reports only the first failing stage. For example, an invalid nested
+  DTO is reported before an invalid root scalar in the same payload.
+- Fields without a default and not nullable get Laravel's `required` rule, so
+  an empty string `''` or empty array `[]` counts as missing. Give the field a
+  default (`array $tags = []`) or make it nullable to accept empty values.
+- Closures, nested rule arrays, and DB-backed `Rule::exists()` /
+  `Rule::unique()` rules are not supported in `rules()`.
+- Union DTO types, `iterable` fields, scalar coercion from strings, and custom
+  or global casts are not supported.
 
 ## Development
 
