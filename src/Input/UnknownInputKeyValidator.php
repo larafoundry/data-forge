@@ -9,6 +9,7 @@ use Axiom\DataForge\Exceptions\UnknownInputKeyException;
 use Axiom\DataForge\Schema\DtoClass;
 use Axiom\DataForge\Schema\DtoSchema;
 use Axiom\DataForge\Schema\DtoSchemaCompiler;
+use Axiom\DataForge\Schema\FieldSpec;
 use ReflectionNamedType;
 
 final class UnknownInputKeyValidator
@@ -49,15 +50,15 @@ final class UnknownInputKeyValidator
             ? self::unknownKeyErrors($schema, $attributes, $path)
             : [];
 
-        foreach ($schema->acceptedKeys() as $propertyName) {
-            $inputKey = $schema->inputKey($propertyName);
+        foreach ($schema->fields as $field) {
+            $inputKey = $field->inputKey;
             if (! array_key_exists($inputKey, $attributes)) {
                 continue;
             }
 
             $value = $attributes[$inputKey];
             $fieldPath = self::joinPath($path, $inputKey);
-            $itemClass = $schema->field($propertyName)?->arrayItemClass;
+            $itemClass = $field->arrayItemClass;
 
             if ($itemClass !== null) {
                 self::mergeErrors($errors, self::collectCollection($value, $itemClass, $fieldPath));
@@ -65,7 +66,7 @@ final class UnknownInputKeyValidator
                 continue;
             }
 
-            $nestedClass = self::nestedDtoClass($schema, $propertyName);
+            $nestedClass = self::nestedDtoClass($field);
             if ($nestedClass === null || ! is_array($value)) {
                 continue;
             }
@@ -155,12 +156,11 @@ final class UnknownInputKeyValidator
     }
 
     /**
-     * @param  DtoSchema<object>  $schema
      * @return class-string|null
      */
-    private static function nestedDtoClass(DtoSchema $schema, string $propertyName): ?string
+    private static function nestedDtoClass(FieldSpec $field): ?string
     {
-        $type = $schema->field($propertyName)?->type->reflectionType;
+        $type = $field->type->reflectionType;
         if (! ($type instanceof ReflectionNamedType) || $type->isBuiltin()) {
             return null;
         }

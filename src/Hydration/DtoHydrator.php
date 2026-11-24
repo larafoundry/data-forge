@@ -6,12 +6,12 @@ namespace Axiom\DataForge\Hydration;
 
 use Axiom\DataForge\Attributes\DateFormat;
 use Axiom\DataForge\Exceptions\DataForgeException;
-use Axiom\DataForge\Exceptions\InspectionException;
 use Axiom\DataForge\Exceptions\InstantiationException;
 use Axiom\DataForge\Exceptions\ValidationException;
 use Axiom\DataForge\Schema\DtoClass;
 use Axiom\DataForge\Schema\DtoSchema;
 use Axiom\DataForge\Schema\DtoSchemaCompiler;
+use Axiom\DataForge\Schema\FieldSpec;
 use Axiom\DataForge\Validation\DtoRuleBuilder;
 use Axiom\DataForge\Validation\RuleScope;
 use Axiom\DataForge\Validation\Validator;
@@ -54,14 +54,14 @@ final class DtoHydrator
         array $customRules = [],
         array $customMessages = []
     ): array {
-        foreach ($schema->acceptedKeys() as $name) {
+        foreach ($schema->fields as $name => $field) {
             if (! array_key_exists($name, $attributes)) {
                 continue;
             }
 
-            $arrayItemClass = $schema->field($name)?->arrayItemClass;
+            $arrayItemClass = $field->arrayItemClass;
             if ($arrayItemClass !== null) {
-                if ($attributes[$name] === null && ($schema->field($name)?->type->reflectionType?->allowsNull() ?? false)) {
+                if ($attributes[$name] === null && $field->type->allowsNull()) {
                     continue;
                 }
 
@@ -74,13 +74,13 @@ final class DtoHydrator
                 );
 
                 // The PHPDoc item type is only read for `array` and Collection fields.
-                $collectionClass = $schema->field($name)?->type?->namedClass();
+                $collectionClass = $field->type->namedClass();
                 $attributes[$name] = $collectionClass === null ? $items : self::makeCollection($collectionClass, $items, $name);
 
                 continue;
             }
 
-            $type = $schema->field($name)?->type->reflectionType;
+            $type = $field->type->reflectionType;
             if (! ($type instanceof ReflectionNamedType) || $type->isBuiltin()) {
                 continue;
             }
@@ -106,7 +106,7 @@ final class DtoHydrator
                 $attributes[$name],
                 $typeName,
                 $type->allowsNull(),
-                self::getDateFormatForKey($schema, $name, $customRules)
+                self::dateFormat($field, $customRules)
             );
         }
 
@@ -281,14 +281,11 @@ final class DtoHydrator
     }
 
     /**
-     * @param  DtoSchema<object>  $schema
      * @param  array<string,array<int,RuleValue>>  $customRules
-     *
-     * @throws InspectionException
      */
-    private static function getDateFormatForKey(DtoSchema $schema, string $name, array $customRules = []): ?DateFormat
+    private static function dateFormat(FieldSpec $field, array $customRules): ?DateFormat
     {
-        $property = $schema->field($name)?->property;
+        $property = $field->property;
         if ($property !== null) {
             $attributes = $property->getAttributes(DateFormat::class);
             if ($attributes !== []) {
@@ -297,7 +294,7 @@ final class DtoHydrator
             }
         }
 
-        foreach ($customRules[$name] ?? [] as $rule) {
+        foreach ($customRules[$field->name] ?? [] as $rule) {
             if (! is_string($rule)) {
                 continue;
             }

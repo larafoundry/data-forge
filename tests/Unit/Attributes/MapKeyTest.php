@@ -118,40 +118,9 @@ class MapKeyTest extends TestCase
             $this->assertArrayHasKey('last_name', $errors);
             $this->assertArrayHasKey('email_address', $errors);
             $this->assertArrayHasKey('age', $errors);
+            $this->assertArrayNotHasKey('firstName', $errors);
+            $this->assertArrayNotHasKey('email', $errors);
         }
-    }
-
-    public function test_validation_errors_use_input_keys(): void
-    {
-        $data = [
-            'first_name' => 'Jo', // Too short
-            'last_name' => 'D', // Too short
-            'email_address' => 'not-an-email',
-            'age' => 17, // Too young
-        ];
-
-        $schema = DtoSchemaCompiler::compile(DtoWithMapKey::class);
-        $validator = Validator::from($schema, $data)
-            ->withRules([
-                'firstName' => 'required|min:3',
-                'lastName' => 'required|min:2',
-                'email' => 'required|email',
-                'age' => 'required|integer|min:18',
-            ]);
-
-        try {
-            $validator->validate();
-            $this->fail('Validation should have failed');
-        } catch (ValidationException $e) {
-            $errors = $e->errors;
-        }
-
-        // Errors use the external input keys, not the canonical property names.
-        $this->assertArrayHasKey('first_name', $errors);
-        $this->assertArrayHasKey('last_name', $errors);
-        $this->assertArrayHasKey('email_address', $errors);
-        $this->assertArrayNotHasKey('firstName', $errors);
-        $this->assertArrayNotHasKey('email', $errors);
     }
 
     public function test_non_strict_validation_ignores_original_key_when_mapped_key_is_provided(): void
