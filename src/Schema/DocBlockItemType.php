@@ -26,6 +26,7 @@ use phpDocumentor\Reflection\Types\Integer;
 use phpDocumentor\Reflection\Types\Null_;
 use phpDocumentor\Reflection\Types\Nullable;
 use phpDocumentor\Reflection\Types\Object_;
+use phpDocumentor\Reflection\Types\Parent_;
 use phpDocumentor\Reflection\Types\Self_;
 use phpDocumentor\Reflection\Types\Static_;
 use phpDocumentor\Reflection\Types\This;
@@ -80,11 +81,11 @@ final class DocBlockItemType
         self::assertDocCommentsAvailable();
 
         $declared = [];
-        if ($property !== null && ($type = self::varType($property)) !== null) {
+        if ($property !== null && ($type = self::varType($property, $class, $name)) !== null) {
             $declared['@var'] = self::itemClass($type, $container, $property->getDeclaringClass()->getName(), $class, $name);
         }
 
-        if ($parameter !== null && ($type = self::paramType($parameter)) !== null) {
+        if ($parameter !== null && ($type = self::paramType($parameter, $class, $name)) !== null) {
             $declared['@param'] = self::itemClass($type, $container, $parameter->getDeclaringClass()?->getName() ?? $class, $class, $name);
         }
 
@@ -136,34 +137,36 @@ final class DocBlockItemType
     }
 
     /**
+     * @param  class-string  $class
+     *
      * @throws InspectionException
      */
-    private static function varType(ReflectionProperty $property): ?Type
+    private static function varType(ReflectionProperty $property, string $class, string $name): ?Type
     {
         $docComment = $property->getDocComment();
         if ($docComment === false) {
             return null;
         }
 
-        $owner = self::declaringTraitOrClass(
+        $propertyName = $property->getName();
+
+        return self::docType(
+            $docComment,
+            null,
             $property->getDeclaringClass(),
-            static fn (ReflectionClass $trait): bool => $trait->hasProperty($property->getName())
-                && $trait->getProperty($property->getName())->getDocComment() === $docComment
+            static fn (ReflectionClass $declarer): bool => $declarer->hasProperty($propertyName)
+                && $declarer->getProperty($propertyName)->getDocComment() === $docComment,
+            $class,
+            $name
         );
-
-        foreach (self::tags($docComment, $owner, 'var') as $tag) {
-            if ($tag instanceof Var_) {
-                return $tag->getType();
-            }
-        }
-
-        return null;
     }
 
     /**
+     * @param  class-string  $class
+     *
      * @throws InspectionException
      */
-    private static function paramType(ReflectionParameter $parameter): ?Type
+    private static function paramType(ReflectionParameter $parameter, string $class, string $name): ?Type
     {
         $constructor = $parameter->getDeclaringFunction();
         $docComment = $constructor->getDocComment();
@@ -171,59 +174,98 @@ final class DocBlockItemType
             return null;
         }
 
-        $owner = self::declaringTraitOrClass(
+        $methodName = $constructor->getName();
+
+        return self::docType(
+            $docComment,
+            $parameter->getName(),
             $constructor->getDeclaringClass(),
-            static fn (ReflectionClass $trait): bool => $trait->getFileName() === $constructor->getFileName()
-                && $trait->hasMethod($constructor->getName())
+            static fn (ReflectionClass $declarer): bool => $declarer->hasMethod($methodName)
+                && $declarer->getMethod($methodName)->getDocComment() === $docComment,
+            $class,
+            $name
         );
-
-        foreach (self::tags($docComment, $owner, 'param') as $tag) {
-            if ($tag instanceof Param && $tag->getVariableName() === $parameter->getName()) {
-                return $tag->getType();
-            }
-        }
-
-        return null;
     }
 
     /**
-     * PHP reports trait members as declared by the class that uses the trait,
-     * but their PHPDoc must be resolved against the trait file's imports.
+     * The type of the field's `@var` tag (when $parameterName is null) or of
+     * its `@param $parameterName` tag.
+     *
+     * PHP reports a trait member as declared by the class using the trait, so
+     * reflection cannot tell which file's `use` imports apply to its PHPDoc.
+     * The PHPDoc is therefore resolved in every class and trait that may
+     * declare the member, and must mean the same type in all of them.
      *
      * @param  ReflectionClass<object>  $class
      * @param  Closure(ReflectionClass<object>): bool  $declares
-     * @return ReflectionClass<object>
-     */
-    private static function declaringTraitOrClass(ReflectionClass $class, Closure $declares): ReflectionClass
-    {
-        foreach ($class->getTraits() as $trait) {
-            if ($declares($trait)) {
-                return self::declaringTraitOrClass($trait, $declares);
-            }
-        }
-
-        return $class;
-    }
-
-    /**
-     * @param  ReflectionClass<object>  $owner
-     * @return list<object>
+     * @param  class-string  $fieldClass
      *
      * @throws InspectionException
      */
-    private static function tags(string $docComment, ReflectionClass $owner, string $tagName): array
-    {
-        $tags = self::factory()->create($docComment, self::context($owner))->getTagsByName($tagName);
+    private static function docType(
+        string $docComment,
+        ?string $parameterName,
+        ReflectionClass $class,
+        Closure $declares,
+        string $fieldClass,
+        string $name
+    ): ?Type {
+        $resolved = [];
+        foreach (self::declarers($class, $declares) as $declarer) {
+            $types = [];
+            foreach (self::factory()->create($docComment, self::context($declarer))->getTags() as $tag) {
+                if ($tag instanceof InvalidTag) {
+                    throw new InspectionException(
+                        "PHPDoc of field '$name' on $fieldClass has a tag that cannot be parsed: '{$tag}' (".$tag->getException()?->getMessage().')'
+                    );
+                }
 
-        foreach ($tags as $tag) {
-            if ($tag instanceof InvalidTag) {
-                throw new InspectionException(
-                    "PHPDoc tag '@$tagName {$tag}' on {$owner->getName()} cannot be parsed: ".$tag->getException()?->getMessage()
-                );
+                if (($parameterName === null && $tag instanceof Var_)
+                    || ($tag instanceof Param && $tag->getVariableName() === $parameterName)) {
+                    $types[] = $tag->getType();
+                }
+            }
+
+            if (count($types) > 1) {
+                $tagName = $parameterName === null ? '@var' : '@param';
+
+                throw new InspectionException("PHPDoc of field '$name' on $fieldClass has more than one $tagName tag for it");
+            }
+
+            if ($types !== [] && $types[0] !== null) {
+                $resolved[$declarer->getName()] = $types[0];
             }
         }
 
-        return array_values($tags);
+        $distinct = array_unique(array_map('strval', $resolved));
+        if (count($distinct) > 1) {
+            throw new InspectionException(
+                "PHPDoc of field '$name' on $fieldClass resolves to different types in "
+                .implode(' and ', array_keys($distinct)).": '".implode("' and '", $distinct)."'; use fully-qualified class names"
+            );
+        }
+
+        return $resolved === [] ? null : reset($resolved);
+    }
+
+    /**
+     * $class and every trait it uses, directly or through other traits, that
+     * may declare the member.
+     *
+     * @param  ReflectionClass<object>  $class
+     * @param  Closure(ReflectionClass<object>): bool  $declares
+     * @return list<ReflectionClass<object>>
+     */
+    private static function declarers(ReflectionClass $class, Closure $declares): array
+    {
+        $declarers = [$class];
+        foreach ($class->getTraits() as $trait) {
+            if ($declares($trait)) {
+                array_push($declarers, ...self::declarers($trait, $declares));
+            }
+        }
+
+        return $declarers;
     }
 
     /**
@@ -310,7 +352,7 @@ final class DocBlockItemType
 
     private static function isListKey(?Type $key): bool
     {
-        return $key === null || $key instanceof Integer;
+        return $key === null || $key::class === Integer::class;
     }
 
     /**
@@ -381,6 +423,12 @@ final class DocBlockItemType
 
         if ($type instanceof Self_ || $type instanceof Static_ || $type instanceof This) {
             return DtoClass::isDto($selfClass);
+        }
+
+        if ($type instanceof Parent_) {
+            $parentClass = get_parent_class($selfClass);
+
+            return $parentClass !== false && DtoClass::isDto($parentClass);
         }
 
         if (! ($type instanceof Object_) || $type->getFqsen() === null) {

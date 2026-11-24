@@ -178,16 +178,23 @@ final class DtoHydrator
     /**
      * @param  class-string  $collectionClass
      * @param  list<object>  $items
+     * @return Collection<array-key, mixed>
      *
      * @throws InstantiationException
      */
-    private static function makeCollection(string $collectionClass, array $items, string $name): object
+    private static function makeCollection(string $collectionClass, array $items, string $name): Collection
     {
         try {
-            return new $collectionClass($items);
+            $collection = new $collectionClass($items);
         } catch (Throwable $e) {
             throw new InstantiationException("Failed to create $collectionClass for field '$name'", 0, $e);
         }
+
+        if (! ($collection instanceof Collection) || $collection->all() !== $items) {
+            throw new InstantiationException("$collectionClass did not keep the items passed to its constructor for field '$name'");
+        }
+
+        return $collection;
     }
 
     /**

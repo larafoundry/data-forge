@@ -398,10 +398,13 @@ resolves `use` imports and aliases:
 - A generic may name the field's class or one of its parents or interfaces,
   for example `Enumerable<int, UserDto>` on a `Collection` field.
 - Types are read from the constructor's `@param` tag or the property's `@var`
-  tag; if both are present they must agree. PHPDoc declared in a trait is
-  resolved against the trait file's `use` imports.
-- Item types that are not DTOs (such as `Collection<int, string>`) leave the
-  field untouched. Untyped fields are never hydrated.
+  tag; if both are present they must agree.
+- PHP reflection cannot tell whether a member was declared in a trait or in
+  the class using it, so PHPDoc on a trait member must mean the same type in
+  both files. Use fully-qualified class names in trait PHPDoc.
+- Item types that are not DTO objects (such as `Collection<int, string>` or
+  `class-string<UserDto>[]`) leave the field untouched. Untyped fields are
+  never hydrated.
 
 PHPStan and Psalm specific tags (`@phpstan-param`, `@psalm-var`, ...) are not
 read. When the PHPDoc of an `array` or `Collection` field names a DTO anywhere,
@@ -411,12 +414,15 @@ it must be exactly one of the forms above. Anything else throws
 - an unknown class (check the name and its `use` import)
 - a malformed tag such as `array<int, UserDto $users`
 - `list<UserDto>`, `array{0: UserDto}`, or other PHPStan-only types
-- string keys, nullable items, or nested lists such as `UserDto[][]`
+- keys other than `int` (including `positive-int`), nullable items, nested
+  lists such as `UserDto[][]`, or `static[]` and `parent[]`
 - a DTO list mixed with other types, such as `UserDto[]|string[]`
 - more than one DTO item type, or a union native type such as `array|Collection`
+- more than one `@param` (or `@var`) tag for the same field
+- trait PHPDoc that resolves to a different type in the using class
 
-A `Collection` subclass whose constructor cannot take the list of items throws
-`InstantiationException`.
+A `Collection` subclass whose constructor cannot take the list of items, or
+does not keep it, throws `InstantiationException`.
 
 Nested DTO values are hydrated through Data Forge's validator and hydrator
 pipeline. A custom `fromArray()` override is treated as a root-level public

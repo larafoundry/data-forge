@@ -53,6 +53,25 @@ final class PhpDocCollectionItemTypeTest extends TestCase
             "Field 'people' on ".DocUnionNativeFixtureDto::class." declares DTO items in PHPDoc '\\".Person::class
                 .'[]\' but has a union native type; use \'array\' or a Collection class',
         ];
+        yield 'two @param tags for the field' => [
+            DocDuplicateParamFixtureDto::class,
+            "PHPDoc of field 'people' on ".DocDuplicateParamFixtureDto::class.' has more than one @param tag for it',
+        ];
+        yield 'two @var tags for the field' => [
+            DocDuplicateVarFixtureDto::class,
+            "PHPDoc of field 'people' on ".DocDuplicateVarFixtureDto::class.' has more than one @var tag for it',
+        ];
+        yield 'trait PHPDoc that resolves differently in the class' => [
+            DocTraitPropertyFixtureDto::class,
+            "PHPDoc of field 'members' on ".DocTraitPropertyFixtureDto::class.' resolves to different types in '
+                .DocTraitPropertyFixtureDto::class.' and '.PhpDocMemberPropertyTrait::class
+                .": '\\Tests\\Feature\\DtoPipeline\\Member[]' and '\\".Person::class."[]'; use fully-qualified class names",
+        ];
+        yield 'tag phpDocumentor cannot parse' => [
+            DocUnparsableShapeFixtureDto::class,
+            "PHPDoc of field 'people' on ".DocUnparsableShapeFixtureDto::class
+                ." has a tag that cannot be parsed: 'non-empty-array{first: Person} \$people' (Unsupported array shape kind)",
+        ];
         yield 'unknown class' => [
             DocUnknownClassFixtureDto::class,
             "PHPDoc type 'Tests\\Feature\\DtoPipeline\\Persn' of field 'people' on ".DocUnknownClassFixtureDto::class
@@ -62,10 +81,12 @@ final class PhpDocCollectionItemTypeTest extends TestCase
         yield 'nullable item type' => $unsupported(DocNullableItemFixtureDto::class, 'array');
         yield 'nested list' => $unsupported(DocNestedListFixtureDto::class, 'array');
         yield 'static item type' => $unsupported(DocStaticItemFixtureDto::class, 'array');
+        yield 'parent item type' => $unsupported(DocParentItemFixtureDto::class, 'array');
         yield 'DTO list mixed with another list' => $unsupported(DocMixedListFixtureDto::class, 'array');
         yield 'list pseudo type' => $unsupported(DocListFixtureDto::class, 'array');
         yield 'array shape' => $unsupported(DocShapeFixtureDto::class, 'array');
         yield 'string keys on an array' => $unsupported(DocStringKeyArrayFixtureDto::class, 'array');
+        yield 'positive-int keys on an array' => $unsupported(DocPositiveIntKeyFixtureDto::class, 'array');
         yield 'collection generic on an array field' => $unsupported(DocGenericOnArrayFixtureDto::class, 'array');
         yield 'string keys on a collection' => $unsupported(DocStringKeyCollectionFixtureDto::class, Collection::class);
         yield 'three generic arguments' => $unsupported(DocThreeArgumentsFixtureDto::class, Collection::class);
@@ -128,13 +149,13 @@ final class PhpDocCollectionItemTypeTest extends TestCase
         $this->assertSame(Person::class, $inspector->getArrayItemClassForKey('people'));
     }
 
-    public function test_trait_phpdoc_is_resolved_with_the_trait_file_imports(): void
+    public function test_trait_phpdoc_with_fully_qualified_names_is_read(): void
     {
-        $fromProperty = DocTraitPropertyFixtureDto::fromArray(['members' => self::PEOPLE]);
-        $fromConstructor = DocTraitConstructorFixtureDto::fromArray(['members' => self::PEOPLE]);
+        $direct = DocTraitConstructorFixtureDto::fromArray(['members' => self::PEOPLE]);
+        $nested = DocNestedTraitConstructorFixtureDto::fromArray(['members' => self::PEOPLE]);
 
-        $this->assertContainsOnlyInstancesOf(Person::class, $fromProperty->members);
-        $this->assertContainsOnlyInstancesOf(Person::class, $fromConstructor->members);
+        $this->assertContainsOnlyInstancesOf(Person::class, $direct->members);
+        $this->assertContainsOnlyInstancesOf(Person::class, $nested->members);
     }
 
     public function test_self_item_type_refers_to_the_declaring_dto(): void
@@ -174,6 +195,16 @@ final class PhpDocCollectionItemTypeTest extends TestCase
             $this->assertSame('Failed to create '.DocModeCollection::class." for field 'people'", $e->getMessage());
             $this->assertInstanceOf(ArgumentCountError::class, $e->getPrevious());
         }
+    }
+
+    public function test_collection_class_that_drops_its_items_is_an_instantiation_error(): void
+    {
+        $this->expectException(InstantiationException::class);
+        $this->expectExceptionMessage(
+            DocEmptyCollection::class." did not keep the items passed to its constructor for field 'people'"
+        );
+
+        DocEmptyCollectionFixtureDto::fromArray(['people' => self::PEOPLE]);
     }
 
     public function test_phpstan_and_psalm_tags_are_ignored(): void
@@ -216,7 +247,7 @@ final class PhpDocCollectionItemTypeTest extends TestCase
     {
         $this->expectException(InspectionException::class);
         $this->expectExceptionMessageMatches(
-            '/^PHPDoc tag \'@param .*\' on '.preg_quote(DocMalformedTagFixtureDto::class, '/').' cannot be parsed: /'
+            "/^PHPDoc of field 'people' on ".preg_quote(DocMalformedTagFixtureDto::class, '/')." has a tag that cannot be parsed: 'array<int, Person  \\\$people' \\(.+\\)$/"
         );
 
         new DtoInspector(DocMalformedTagFixtureDto::class);
@@ -383,6 +414,80 @@ final class DocTraitConstructorFixtureDto
 {
     use AsDto;
     use PhpDocMemberConstructorTrait;
+}
+
+trait DocMemberConstructorWrapperTrait
+{
+    use PhpDocMemberConstructorTrait;
+}
+
+final class DocNestedTraitConstructorFixtureDto
+{
+    use AsDto;
+    use DocMemberConstructorWrapperTrait;
+}
+
+final class DocEmptyCollection extends Collection
+{
+    public function __construct()
+    {
+        parent::__construct([]);
+    }
+}
+
+final class DocEmptyCollectionFixtureDto
+{
+    use AsDto;
+
+    /**
+     * @param  DocEmptyCollection<int, Person>  $people
+     */
+    public function __construct(public readonly DocEmptyCollection $people) {}
+}
+
+final class DocDuplicateParamFixtureDto
+{
+    use AsDto;
+
+    /**
+     * @param  string[]  $people
+     * @param  Person[]  $people
+     */
+    public function __construct(public readonly array $people) {}
+}
+
+final class DocDuplicateVarFixtureDto
+{
+    use AsDto;
+
+    /**
+     * @var string[]
+     * @var Person[]
+     */
+    public array $people = [];
+}
+
+class DocParentDto
+{
+    use AsDto;
+}
+
+final class DocParentItemFixtureDto extends DocParentDto
+{
+    /**
+     * @param  parent[]  $people
+     */
+    public function __construct(public readonly array $people) {}
+}
+
+final class DocPositiveIntKeyFixtureDto
+{
+    use AsDto;
+
+    /**
+     * @param  array<positive-int, Person>  $people
+     */
+    public function __construct(public readonly array $people) {}
 }
 
 final class DocTreeFixtureDto
@@ -652,4 +757,14 @@ final class DocUnrelatedCollectionFixtureDto
      * @param  DocOtherCollection<int, Person>  $people
      */
     public function __construct(public readonly DocPeopleCollection $people) {}
+}
+
+final class DocUnparsableShapeFixtureDto
+{
+    use AsDto;
+
+    /**
+     * @param  non-empty-array{first: Person}  $people
+     */
+    public function __construct(public readonly array $people) {}
 }
