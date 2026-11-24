@@ -114,10 +114,6 @@ final class Validator
     public function withMessages(array $messages): self
     {
         foreach ($messages as $field => $message) {
-            if (! is_string($field) || ! is_string($message)) {
-                throw new InspectionException('Validation messages must be string-keyed strings.');
-            }
-
             $this->messages[$field] = $message;
         }
 
@@ -197,39 +193,10 @@ final class Validator
         }
     }
 
-    /**
-     * @param  array<mixed,mixed>  $errors
-     * @return array<string,array<int,string>>
-     */
-    private static function stringErrorBag(array $errors): array
-    {
-        $result = [];
-        foreach ($errors as $field => $messages) {
-            if (! is_string($field) || ! is_array($messages)) {
-                continue;
-            }
-
-            $fieldMessages = [];
-            foreach ($messages as $message) {
-                if (is_string($message)) {
-                    $fieldMessages[] = $message;
-                }
-            }
-
-            $result[$field] = $fieldMessages;
-        }
-
-        return $result;
-    }
-
     private static function defaultValidationFactory(): ValidationFactory
     {
         $loader = new ArrayLoader();
-        $messages = self::defaultValidationMessages();
-
-        if ($messages !== []) {
-            $loader->addMessages('en', 'validation', $messages);
-        }
+        $loader->addMessages('en', 'validation', self::defaultValidationMessages());
 
         return new ValidationFactory(
             new Translator($loader, 'en'),
@@ -242,22 +209,14 @@ final class Validator
      */
     private static function defaultValidationMessages(): array
     {
+        // illuminate/translation ships these messages next to ArrayLoader
+        // in every supported version (10.48 through 13).
+        /** @var string $fileName */
         $fileName = (new ReflectionClass(ArrayLoader::class))->getFileName();
-        if (! is_string($fileName)) {
-            return [];
-        }
-
-        $path = dirname($fileName).'/lang/en/validation.php';
-        if (! is_file($path)) {
-            return [];
-        }
-
-        $messages = require $path;
-        if (! is_array($messages)) {
-            return [];
-        }
 
         /** @var array<string,mixed> $messages */
+        $messages = require dirname($fileName).'/lang/en/validation.php';
+
         return $messages;
     }
 
@@ -351,7 +310,9 @@ final class Validator
         $validator = $this->factory->make($attributes, $rules, $this->messages, $this->displayAttributes());
 
         if ($validator->fails()) {
-            $this->errors = self::stringErrorBag($validator->errors()->toArray());
+            /** @var array<string,array<int,string>> $errors */
+            $errors = $validator->errors()->toArray();
+            $this->errors = $errors;
             throw new ValidationException($this->errors);
         }
 

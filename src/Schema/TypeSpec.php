@@ -15,36 +15,7 @@ final class TypeSpec
 
     public function accepts(mixed $value): bool
     {
-        if ($this->reflectionType === null) {
-            return true;
-        }
-
-        if ($this->reflectionType instanceof ReflectionNamedType) {
-            return self::namedTypeAccepts($this->reflectionType, $value);
-        }
-
-        if ($this->reflectionType instanceof ReflectionUnionType) {
-            foreach ($this->reflectionType->getTypes() as $type) {
-                if ($type instanceof ReflectionNamedType && self::namedTypeAccepts($type, $value)) {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        if ($this->reflectionType instanceof ReflectionIntersectionType) {
-            $types = $this->reflectionType->getTypes();
-            foreach ($types as $type) {
-                if ($type instanceof ReflectionNamedType && ! self::namedTypeAccepts($type, $value)) {
-                    return false;
-                }
-            }
-
-            return $types !== [];
-        }
-
-        return false;
+        return $this->reflectionType === null || self::typeAccepts($this->reflectionType, $value);
     }
 
     public function allowsNull(): bool
@@ -111,6 +82,33 @@ final class TypeSpec
             'string' => 'string',
             default => null,
         };
+    }
+
+    private static function typeAccepts(ReflectionType $type, mixed $value): bool
+    {
+        if ($type instanceof ReflectionNamedType) {
+            return self::namedTypeAccepts($type, $value);
+        }
+
+        if ($type instanceof ReflectionUnionType) {
+            foreach ($type->getTypes() as $unionType) {
+                if (self::typeAccepts($unionType, $value)) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        // PHP only has named, union, and intersection types.
+        $intersectionTypes = $type instanceof ReflectionIntersectionType ? $type->getTypes() : [];
+        foreach ($intersectionTypes as $intersectionType) {
+            if (! self::typeAccepts($intersectionType, $value)) {
+                return false;
+            }
+        }
+
+        return $intersectionTypes !== [];
     }
 
     private static function namedTypeAccepts(ReflectionNamedType $type, mixed $value): bool

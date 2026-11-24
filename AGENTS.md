@@ -14,7 +14,10 @@ Before commit:
    - or `composer phpstan`
 2. Run tests and fix all failures:
    - This is a Composer package, so use `vendor/bin/phpunit` or `composer test`.
-3. Run Laravel Pint last:
+3. Keep coverage at 100% of lines and methods in `src/` (CI enforces it):
+   - `composer coverage` (needs PCOV)
+   - never use `@codeCoverageIgnore`. Delete unreachable code, test the rest.
+4. Run Laravel Pint last:
    - `vendor/bin/pint`
    - or `composer pint`
 

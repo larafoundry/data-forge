@@ -42,6 +42,15 @@ First public beta.
 - Validation messages for `#[MapKey]` fields now name the external input key
   (for example "The zip code field…" for `zip_code`) instead of the PHP
   property name.
+- A misconfigured `#[ArrayOf]` now throws `InspectionException` when the DTO
+  is inspected. Before, it reached callers as a `ValidationException`. This
+  covers a field not typed as `Collection` and an item class that is not a DTO.
+- Rules that target a single collection item by index, such as
+  `'items.0' => 'array'`, no longer crash with a `TypeError`.
+- `#[DateFormat]` formats that contain an escaped `\|` or `\!` now also reset
+  fields missing from the format, instead of using the current time.
+- DNF types such as `(Countable&Stringable)|int` now check every member of the
+  intersection instead of rejecting all objects.
 
 [Unreleased]: https://github.com/larafoundry/data-forge/compare/v0.1.0-beta.1...HEAD
 [0.1.0-beta.1]: https://github.com/larafoundry/data-forge/releases/tag/v0.1.0-beta.1

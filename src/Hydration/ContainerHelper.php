@@ -6,10 +6,8 @@ namespace Axiom\DataForge\Hydration;
 
 use Axiom\DataForge\Exceptions\InstantiationException;
 use ReflectionClass;
-use ReflectionNamedType;
 use ReflectionParameter;
 use ReflectionType;
-use ReflectionUnionType;
 use Throwable;
 
 final class ContainerHelper
@@ -79,11 +77,7 @@ final class ContainerHelper
                     throw new InstantiationException("Cannot assign readonly property: $key");
                 }
 
-                try {
-                    $instance->{$key} = $value;
-                } catch (Throwable $e) {
-                    throw new InstantiationException("Failed to assign property '$key' on $class", 0, $e);
-                }
+                self::assignProperty($instance, $class, $key, $value);
             }
         }
 
@@ -99,11 +93,7 @@ final class ContainerHelper
             }
 
             if (self::typeAllowsNull($property->getType())) {
-                try {
-                    $instance->{$propertyName} = null;
-                } catch (Throwable $e) {
-                    throw new InstantiationException("Failed to initialize nullable property '$propertyName' on $class", 0, $e);
-                }
+                self::assignProperty($instance, $class, $propertyName, null);
 
                 continue;
             }
@@ -115,6 +105,18 @@ final class ContainerHelper
         return $instance;
     }
 
+    /**
+     * @throws InstantiationException
+     */
+    private static function assignProperty(object $instance, string $class, string $name, mixed $value): void
+    {
+        try {
+            $instance->{$name} = $value;
+        } catch (Throwable $e) {
+            throw new InstantiationException("Failed to assign property '$name' on $class", 0, $e);
+        }
+    }
+
     private static function parameterAllowsNull(ReflectionParameter $param): bool
     {
         return self::typeAllowsNull($param->getType());
@@ -122,22 +124,6 @@ final class ContainerHelper
 
     private static function typeAllowsNull(?ReflectionType $type): bool
     {
-        if ($type === null) {
-            return false;
-        }
-
-        if ($type->allowsNull()) {
-            return true;
-        }
-
-        if ($type instanceof ReflectionUnionType) {
-            foreach ($type->getTypes() as $unionType) {
-                if ($unionType instanceof ReflectionNamedType && $unionType->getName() === 'null') {
-                    return true;
-                }
-            }
-        }
-
-        return false;
+        return $type?->allowsNull() ?? false;
     }
 }

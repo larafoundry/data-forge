@@ -21,7 +21,7 @@ final class RuleScope
         $prefix = Path::fromString($field);
 
         foreach ($rules as $path => $fieldRules) {
-            $nestedPath = Path::fromString($path)->relativeTo($prefix);
+            $nestedPath = Path::fromString((string) $path)->relativeTo($prefix);
             if ($nestedPath === null || $nestedPath->isEmpty()) {
                 continue;
             }
@@ -42,7 +42,7 @@ final class RuleScope
         $prefix = Path::fromString($field);
 
         foreach ($messages as $path => $message) {
-            $nestedPath = Path::fromString($path)->relativeTo($prefix);
+            $nestedPath = Path::fromString((string) $path)->relativeTo($prefix);
             if ($nestedPath === null || $nestedPath->isEmpty() || ! $nestedPath->containsNestedPath()) {
                 continue;
             }
@@ -62,8 +62,8 @@ final class RuleScope
         $scoped = [];
 
         foreach ($rules as $path => $fieldRules) {
-            $itemPath = Path::fromString($path)->collectionItemRelative($index);
-            if ($itemPath !== null) {
+            $itemPath = Path::fromString((string) $path)->collectionItemRelative($index);
+            if ($itemPath !== null && ! $itemPath->isEmpty()) {
                 $scoped[$itemPath->toString()] = $fieldRules;
             }
         }
@@ -80,7 +80,7 @@ final class RuleScope
         $scoped = [];
 
         foreach ($messages as $path => $message) {
-            $itemPath = Path::fromString($path)->collectionItemRelative($index);
+            $itemPath = Path::fromString((string) $path)->collectionItemRelative($index);
             if ($itemPath !== null && $itemPath->containsNestedPath()) {
                 $scoped[$itemPath->toString()] = $message;
             }

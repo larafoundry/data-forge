@@ -69,9 +69,4 @@ final class DtoSchema
     {
         return $this->fields[$name] ?? null;
     }
-
-    public function hasField(string $name): bool
-    {
-        return array_key_exists($name, $this->fields);
-    }
 }

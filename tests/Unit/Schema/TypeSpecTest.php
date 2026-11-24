@@ -96,6 +96,26 @@ final class TypeSpecTest extends TestCase
         $this->assertNull($this->typeSpecFor('intOrString')->namedClass());
     }
 
+    public function test_dnf_types_check_each_intersection_member(): void
+    {
+        if (PHP_VERSION_ID < 80200) {
+            $this->markTestSkipped('DNF types require PHP 8.2 or newer.');
+        }
+
+        $class = __NAMESPACE__.'\\TypeSpecDnfFixture';
+        if (! class_exists($class)) {
+            eval('namespace Tests\Unit\Schema; final class TypeSpecDnfFixture { public (\Countable&\Stringable)|int $value; }');
+        }
+
+        $type = new TypeSpec((new ReflectionProperty($class, 'value'))->getType());
+
+        $this->assertTrue($type->accepts(new TypeSpecStringableCountableFixture));
+        $this->assertTrue($type->accepts(42));
+        $this->assertFalse($type->accepts(new TypeSpecStringableOnlyFixture));
+        $this->assertFalse($type->accepts('42'));
+        $this->assertNull($type->sizeRuleType());
+    }
+
     public function test_missing_reflection_type_accepts_any_value_without_metadata(): void
     {
         $type = new TypeSpec(null);
