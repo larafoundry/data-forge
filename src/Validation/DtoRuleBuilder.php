@@ -10,7 +10,9 @@ use Axiom\DataForge\Attributes\Min;
 use Axiom\DataForge\Attributes\StringLength;
 use Axiom\DataForge\Exceptions\InspectionException;
 use Axiom\DataForge\Schema\DtoClass;
-use Axiom\DataForge\Schema\DtoInspector;
+use Axiom\DataForge\Schema\DtoSchema;
+use Axiom\DataForge\Schema\DtoSchemaCompiler;
+use Axiom\DataForge\Schema\FieldSpec;
 use Axiom\DataForge\Schema\TypeSpec;
 use Closure;
 use Illuminate\Contracts\Validation\Rule as LegacyValidationRule;
@@ -36,62 +38,59 @@ final class DtoRuleBuilder
     private const DATABASE_BACKED_RULE_MESSAGE = 'Database-backed validation rules such as Rule::exists() and Rule::unique() are unsupported without an explicit validation factory integration.';
 
     /**
-     * @param  DtoInspector<object>  $inspector
+     * @param  DtoSchema<object>  $schema
      * @param  array<string,array<int,RuleValue>>  $customRules
      * @param  array<string,mixed>  $attributes
+     * @param  bool  $afterHydration  false: attribute rules for the projected input;
+     *                                true: type checks for the hydrated values
      * @return array<string, array<int,BuiltRule>>
      *
      * @throws InspectionException
      */
     public static function build(
-        DtoInspector $inspector,
+        DtoSchema $schema,
         array $customRules,
         array $attributes,
-        bool $includeTypeRules = true,
-        bool $includeAttributeRules = true,
+        bool $afterHydration,
     ): array {
         /** @var array<string, array<int,BuiltRule>> $rules */
         $rules = [];
 
-        foreach ($inspector->getRequiredKeys() as $key) {
+        foreach ($schema->requiredKeys() as $key) {
             $rules[$key][] = 'required';
         }
 
-        foreach ($inspector->getAcceptedKeys() as $key) {
-            if (! in_array($key, $inspector->getRequiredKeys(), true)
-                && $inspector->isTypeAcceptedForKey($key, null)
-            ) {
+        foreach ($schema->fields as $key => $field) {
+            $type = $field->type;
+            if (! $field->required && $type->accepts(null)) {
                 $rules[$key][] = 'nullable';
             }
 
-            if ($includeTypeRules) {
-                $rules[$key][] = static function (string $attribute, mixed $value, Closure $fail) use ($inspector, $key) {
-                    if (! $inspector->isTypeAcceptedForKey($key, $value)) {
+            if ($afterHydration) {
+                $rules[$key][] = static function (string $attribute, mixed $value, Closure $fail) use ($type) {
+                    if (! $type->accepts($value)) {
                         $fail('The :attribute field has an invalid type.');
                     }
                 };
             }
 
-            if ($includeAttributeRules) {
-                $attributeRules = self::buildAttributeRules($inspector, $key);
+            if (! $afterHydration) {
+                $attributeRules = self::buildAttributeRules($field);
                 if ($attributeRules !== []) {
                     $rules[$key] = array_merge($rules[$key] ?? [], $attributeRules);
                 }
             }
         }
 
-        $acceptedKeys = $inspector->getAcceptedKeys();
-
         foreach ($customRules as $field => $fieldRules) {
             $rootField = explode('.', $field, 2)[0];
-            // Check if the field exists in the DTO before adding rules for it
-            if (! in_array($rootField, $acceptedKeys, true)) {
+            if (! isset($schema->fields[$rootField])) {
                 throw new InspectionException(
                     "Cannot add validation rules for field '$field' because root field '$rootField' does not exist in the DTO."
                 );
             }
 
-            $fieldRules = self::addNumericRuleForNumericType($inspector, $field, $fieldRules);
+            $fieldRules = self::addNumericRuleForNumericType($schema, $field, $fieldRules);
             $rules[$field] = array_merge($rules[$field] ?? [], $fieldRules);
         }
 
@@ -156,13 +155,13 @@ final class DtoRuleBuilder
     }
 
     /**
-     * @param  DtoInspector<object>  $inspector
+     * @param  DtoSchema<object>  $schema
      * @param  array<int,RuleValue>  $fieldRules
      * @return array<int,RuleValue>
      */
-    private static function addNumericRuleForNumericType(DtoInspector $inspector, string $key, array $fieldRules): array
+    private static function addNumericRuleForNumericType(DtoSchema $schema, string $key, array $fieldRules): array
     {
-        if (! (self::typeForPath($inspector, $key)?->isNumeric() ?? false)) {
+        if (! (self::typeForPath($schema, $key)?->isNumeric() ?? false)) {
             return $fieldRules;
         }
 
@@ -176,14 +175,14 @@ final class DtoRuleBuilder
     }
 
     /**
-     * @param  DtoInspector<object>  $inspector
+     * @param  DtoSchema<object>  $schema
      *
      * @throws InspectionException
      */
-    private static function typeForPath(DtoInspector $inspector, string $path): ?TypeSpec
+    private static function typeForPath(DtoSchema $schema, string $path): ?TypeSpec
     {
         $parts = explode('.', $path);
-        $currentInspector = $inspector;
+        $currentSchema = $schema;
         $type = null;
 
         foreach ($parts as $index => $part) {
@@ -191,14 +190,14 @@ final class DtoRuleBuilder
                 continue;
             }
 
-            $type = $currentInspector->getTypeSpecForKey($part);
+            $type = $currentSchema->field($part)?->type;
             if ($type === null || $index === array_key_last($parts)) {
                 return $type;
             }
 
-            $arrayItemClass = $currentInspector->getArrayItemClassForKey($part);
+            $arrayItemClass = $currentSchema->field($part)?->arrayItemClass;
             if ($arrayItemClass !== null) {
-                $currentInspector = new DtoInspector($arrayItemClass);
+                $currentSchema = DtoSchemaCompiler::compile($arrayItemClass);
 
                 continue;
             }
@@ -212,7 +211,7 @@ final class DtoRuleBuilder
                 return null;
             }
 
-            $currentInspector = new DtoInspector($typeName);
+            $currentSchema = DtoSchemaCompiler::compile($typeName);
         }
 
         return $type;
@@ -306,21 +305,22 @@ final class DtoRuleBuilder
     }
 
     /**
-     * @param  DtoInspector<object>  $inspector
      * @return array<int,string>
      *
      * @throws InspectionException
      */
-    private static function buildAttributeRules(DtoInspector $inspector, string $key): array
+    private static function buildAttributeRules(FieldSpec $field): array
     {
-        $property = $inspector->getReflectionProperty($key);
+        $property = $field->property;
         if ($property === null) {
             return [];
         }
 
+        $key = $field->name;
+
         try {
             $rules = [];
-            $isNumericType = $inspector->getTypeSpecForKey($key)?->isNumeric() ?? false;
+            $isNumericType = $field->type->isNumeric();
             $hasNumericConstraint = false;
 
             foreach ($property->getAttributes(Min::class) as $attribute) {

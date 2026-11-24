@@ -6,13 +6,12 @@ namespace Axiom\DataForge\Validation;
 
 use Axiom\DataForge\Exceptions\DataForgeException;
 use Axiom\DataForge\Exceptions\InspectionException;
-use Axiom\DataForge\Exceptions\UnknownInputKeyException;
 use Axiom\DataForge\Exceptions\ValidationException;
 use Axiom\DataForge\Hydration\DtoHydrator;
 use Axiom\DataForge\Input\ErrorKeyMapper;
 use Axiom\DataForge\Input\InputMapper;
 use Axiom\DataForge\Input\UnknownInputKeyValidator;
-use Axiom\DataForge\Schema\DtoInspector;
+use Axiom\DataForge\Schema\DtoSchema;
 use Illuminate\Container\Container;
 use Illuminate\Support\Str;
 use Illuminate\Translation\ArrayLoader;
@@ -26,47 +25,43 @@ use ReflectionClass;
  */
 final class Validator
 {
+    private const RAW_SHAPE_RULES = [
+        'array',
+        'list',
+        'required_array_keys',
+    ];
+
     /** @var array<string,array<int,RuleValue>> */
     private array $rules = [];
 
     /** @var array<string,string> */
     private array $messages = [];
 
-    /** @var array<string,array<int,string>> */
-    private array $errors = [];
-
     private ValidationFactory $factory;
 
     /**
-     * @param  DtoInspector<object>  $inspector
+     * @param  DtoSchema<object>  $schema
      * @param  array<string,mixed>  $attributes
      */
-    public function __construct(
-        private readonly DtoInspector $inspector,
+    private function __construct(
+        private readonly DtoSchema $schema,
         private readonly array $attributes,
-        ?ValidationFactory $factory = null,
-        private readonly bool $autoCastAfterValidation = false,
-        private readonly bool $rejectsUnknownInputKeys = false,
-        private readonly bool $checksUnknownInputKeys = true,
-        private readonly bool $isNested = false,
+        private readonly bool $rejectsUnknownInputKeys,
+        private readonly bool $isNested,
     ) {
-        $this->factory = $factory ?? self::defaultValidationFactory();
+        $this->factory = self::defaultValidationFactory();
     }
 
     /**
-     * @param  DtoInspector<object>  $inspector
-     * @param  array<string,mixed>  $attributes
+     * Create a validator for a root DTO. It checks unknown input keys and
+     * reports errors with the caller's input keys.
      *
-     * @throws DataForgeException
+     * @param  DtoSchema<object>  $schema
+     * @param  array<string,mixed>  $attributes
      */
-    public static function from(DtoInspector $inspector, array $attributes, bool $rejectsUnknownInputKeys = false): self
+    public static function from(DtoSchema $schema, array $attributes, bool $rejectsUnknownInputKeys = false): self
     {
-        return new self(
-            $inspector,
-            $attributes,
-            autoCastAfterValidation: true,
-            rejectsUnknownInputKeys: $rejectsUnknownInputKeys
-        );
+        return new self($schema, $attributes, $rejectsUnknownInputKeys, isNested: false);
     }
 
     /**
@@ -74,18 +69,12 @@ final class Validator
      * keys in canonical form so the outermost (root) validator can translate
      * the fully-qualified path to input keys exactly once.
      *
-     * @param  DtoInspector<object>  $inspector
+     * @param  DtoSchema<object>  $schema
      * @param  array<string,mixed>  $attributes
      */
-    public static function nested(DtoInspector $inspector, array $attributes): self
+    public static function nested(DtoSchema $schema, array $attributes): self
     {
-        return new self(
-            $inspector,
-            $attributes,
-            autoCastAfterValidation: true,
-            checksUnknownInputKeys: false,
-            isNested: true
-        );
+        return new self($schema, $attributes, rejectsUnknownInputKeys: false, isNested: true);
     }
 
     /**
@@ -120,30 +109,6 @@ final class Validator
         return $this;
     }
 
-    /* ------------------------------------------------------------------ */
-
-    /** @return array<string,array<int,string>> */
-    public function getErrors(): array
-    {
-        return $this->errors;
-    }
-
-    /**
-     * @return array<string,array<int,RuleValue>>
-     */
-    public function getCustomRules(): array
-    {
-        return $this->rules;
-    }
-
-    /**
-     * @return array<string,mixed>
-     */
-    public function getAttributes(): array
-    {
-        return $this->attributes;
-    }
-
     /**
      * @return array<string,mixed>
      *
@@ -151,21 +116,11 @@ final class Validator
      */
     public function validate(): array
     {
-        try {
-            if ($this->checksUnknownInputKeys) {
-                UnknownInputKeyValidator::assertNoUnknownKeys(
-                    $this->inspector,
-                    $this->attributes,
-                    $this->rejectsUnknownInputKeys
-                );
-            }
-
-            $attributes = InputMapper::normalize($this->inspector, $this->attributes);
-        } catch (UnknownInputKeyException $e) {
-            // Unknown-key violations are already keyed in the caller's namespace.
-            $this->errors = $e->errors;
-            throw $e;
+        if (! $this->isNested) {
+            UnknownInputKeyValidator::assertNoUnknownKeys($this->schema, $this->attributes, $this->rejectsUnknownInputKeys);
         }
+
+        $attributes = InputMapper::normalize($this->schema, $this->attributes);
 
         if ($this->isNested) {
             return $this->runValidation($attributes);
@@ -174,22 +129,7 @@ final class Validator
         try {
             return $this->runValidation($attributes);
         } catch (ValidationException $e) {
-            $this->errors = ErrorKeyMapper::toInputKeys($this->inspector, $e->errors);
-            throw new ValidationException($this->errors);
-        }
-    }
-
-    /**
-     * @return array<string,mixed>|false
-     *
-     * @throws DataForgeException
-     */
-    public function validateSafe(): array|false
-    {
-        try {
-            return $this->validate();
-        } catch (ValidationException) {
-            return false;
+            throw new ValidationException(ErrorKeyMapper::toInputKeys($this->schema, $e->errors));
         }
     }
 
@@ -237,6 +177,51 @@ final class Validator
     }
 
     /**
+     * Shape rules (`array`, `list`, `required_array_keys`) on top-level fields,
+     * checked against the raw input before projection and hydration.
+     *
+     * @param  array<string,array<int,RuleValue>>  $rules
+     * @return array<string,array<int,string>>
+     */
+    private static function rawShapeRules(array $rules): array
+    {
+        $rawShapeRules = [];
+
+        foreach ($rules as $field => $fieldRules) {
+            if (str_contains($field, '.')) {
+                continue;
+            }
+
+            $shapeRules = [];
+            foreach ($fieldRules as $rule) {
+                if (! is_string($rule)) {
+                    continue;
+                }
+
+                if (self::isRawShapeRule($rule)) {
+                    $shapeRules[] = $rule;
+                }
+            }
+
+            if ($shapeRules !== []) {
+                $rawShapeRules[$field] = $shapeRules;
+            }
+        }
+
+        return $rawShapeRules;
+    }
+
+    private static function isRawShapeRule(string $rule): bool
+    {
+        return in_array(self::ruleName($rule), self::RAW_SHAPE_RULES, true);
+    }
+
+    private static function ruleName(string $rule): string
+    {
+        return mb_strtolower(explode(':', $rule, 2)[0]);
+    }
+
+    /**
      * Run the validation pipeline, producing canonical-keyed results and errors.
      *
      * @param  array<string,mixed>  $attributes
@@ -246,33 +231,26 @@ final class Validator
      */
     private function runValidation(array $attributes): array
     {
-        if (! $this->autoCastAfterValidation) {
-            return $this->validateAttributes(
-                $attributes,
-                DtoRuleBuilder::build($this->inspector, $this->rules, $attributes)
-            );
-        }
-
-        $rawShapeRules = RulePlanner::rawShapeRules($this->rules);
+        $rawShapeRules = self::rawShapeRules($this->rules);
         if ($rawShapeRules !== []) {
             $this->validateAttributes($attributes, $rawShapeRules);
         }
 
-        $preHydrationAttributes = ValidationProjector::project($this->inspector, $attributes);
+        $preHydrationAttributes = ValidationProjector::project($this->schema, $attributes);
         $preHydrationRules = DtoRuleBuilder::build(
-            $this->inspector,
+            $this->schema,
             $this->rules,
             $preHydrationAttributes,
-            includeTypeRules: false
+            afterHydration: false
         );
         $this->validateAttributes($preHydrationAttributes, $preHydrationRules);
 
-        $hydratedAttributes = DtoHydrator::hydrate($this->inspector, $attributes, $this->rules, $this->messages);
+        $hydratedAttributes = DtoHydrator::hydrate($this->schema, $attributes, $this->rules, $this->messages);
         $postHydrationRules = DtoRuleBuilder::build(
-            $this->inspector,
+            $this->schema,
             [],
             $hydratedAttributes,
-            includeAttributeRules: false
+            afterHydration: true
         );
 
         return $this->validateAttributes($hydratedAttributes, $postHydrationRules);
@@ -283,13 +261,11 @@ final class Validator
      * fields, so the message text matches the error key the caller sees.
      *
      * @return array<string,string>
-     *
-     * @throws InspectionException
      */
     private function displayAttributes(): array
     {
         $display = [];
-        foreach ($this->inspector->getKeyMap() as $property => $inputKey) {
+        foreach ($this->schema->keyMap() as $property => $inputKey) {
             if ($property !== $inputKey) {
                 $display[$property] = str_replace('_', ' ', Str::snake($inputKey));
             }
@@ -312,8 +288,8 @@ final class Validator
         if ($validator->fails()) {
             /** @var array<string,array<int,string>> $errors */
             $errors = $validator->errors()->toArray();
-            $this->errors = $errors;
-            throw new ValidationException($this->errors);
+
+            throw new ValidationException($errors);
         }
 
         return self::stringKeyedValidated($validator->validated());

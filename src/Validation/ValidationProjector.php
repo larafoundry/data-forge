@@ -7,51 +7,62 @@ namespace Axiom\DataForge\Validation;
 use Axiom\DataForge\Exceptions\InspectionException;
 use Axiom\DataForge\Input\InputMapper;
 use Axiom\DataForge\Schema\DtoClass;
-use Axiom\DataForge\Schema\DtoInspector;
+use Axiom\DataForge\Schema\DtoSchema;
+use Axiom\DataForge\Schema\DtoSchemaCompiler;
 use BackedEnum;
 use Illuminate\Support\Collection;
 use ReflectionNamedType;
 use UnitEnum;
 
+/**
+ * Builds the canonical view of input that pre-hydration validation rules run
+ * against: nested DTO arrays and objects become canonical arrays, and enums
+ * become their values.
+ */
 final class ValidationProjector
 {
     /**
-     * @param  DtoInspector<object>  $inspector
+     * @param  DtoSchema<object>  $schema
      * @param  array<string,mixed>  $attributes
      * @return array<string,mixed>
      *
      * @throws InspectionException
      */
-    public static function project(DtoInspector $inspector, array $attributes, string $pathPrefix = ''): array
+    public static function project(DtoSchema $schema, array $attributes): array
     {
         $projected = [];
 
         foreach ($attributes as $field => $value) {
-            $path = self::joinPath($pathPrefix, $field);
-            $projected[$field] = self::projectField($inspector, $field, $value, $path);
+            $projected[$field] = self::projectField($schema, $field, $value);
         }
 
         return $projected;
     }
 
     /**
-     * @param  DtoInspector<object>  $inspector
+     * @param  DtoSchema<object>  $schema
      *
      * @throws InspectionException
      */
-    private static function projectField(DtoInspector $inspector, string $field, mixed $value, string $path): mixed
+    private static function projectField(DtoSchema $schema, string $field, mixed $value): mixed
     {
-        $arrayItemClass = $inspector->getArrayItemClassForKey($field);
+        $arrayItemClass = $schema->field($field)?->arrayItemClass;
         if ($arrayItemClass !== null) {
-            return self::projectCollectionValue($value, $arrayItemClass, $path);
+            if (! ($value instanceof Collection) && ! is_array($value)) {
+                return self::projectValue($value);
+            }
+
+            $items = [];
+            foreach ($value as $key => $item) {
+                $items[$key] = self::projectDtoValue($item, $arrayItemClass);
+            }
+
+            return $items;
         }
 
-        $type = $inspector->getTypeForKey($field);
-        if ($type instanceof ReflectionNamedType && ! $type->isBuiltin()) {
-            $typeName = $type->getName();
-            if (DtoClass::isDto($typeName)) {
-                return self::projectDtoValue($value, $typeName, $path);
-            }
+        $type = $schema->field($field)?->type->reflectionType;
+        if ($type instanceof ReflectionNamedType && ! $type->isBuiltin() && DtoClass::isDto($type->getName())) {
+            return self::projectDtoValue($value, $type->getName());
         }
 
         return self::projectValue($value);
@@ -62,60 +73,14 @@ final class ValidationProjector
      *
      * @throws InspectionException
      */
-    private static function projectCollectionValue(mixed $value, string $class, string $path): mixed
-    {
-        if ($value instanceof Collection) {
-            $items = [];
-            foreach ($value as $key => $item) {
-                $items[$key] = self::projectCollectionItem($item, $class, self::joinPath($path, (string) $key));
-            }
-
-            return $items;
-        }
-
-        if (is_array($value)) {
-            $items = [];
-            foreach ($value as $key => $item) {
-                $items[$key] = self::projectCollectionItem($item, $class, self::joinPath($path, (string) $key));
-            }
-
-            return $items;
-        }
-
-        return self::projectValue($value);
-    }
-
-    /**
-     * @param  class-string  $class
-     *
-     * @throws InspectionException
-     */
-    private static function projectCollectionItem(mixed $item, string $class, string $path): mixed
-    {
-        if ($item instanceof $class) {
-            return self::projectDtoObject($item, new DtoInspector($class), $path);
-        }
-
-        if (is_array($item)) {
-            return self::projectDtoArray($item, $class, $path);
-        }
-
-        return self::projectValue($item);
-    }
-
-    /**
-     * @param  class-string  $class
-     *
-     * @throws InspectionException
-     */
-    private static function projectDtoValue(mixed $value, string $class, string $path): mixed
+    private static function projectDtoValue(mixed $value, string $class): mixed
     {
         if ($value instanceof $class) {
-            return self::projectDtoObject($value, new DtoInspector($class), $path);
+            return self::projectDtoObject($value, DtoSchemaCompiler::compile($class));
         }
 
         if (is_array($value)) {
-            return self::projectDtoArray($value, $class, $path);
+            return self::projectDtoArray($value, $class);
         }
 
         return self::projectValue($value);
@@ -127,7 +92,7 @@ final class ValidationProjector
      *
      * @throws InspectionException
      */
-    private static function projectDtoArray(array $value, string $class, string $path): mixed
+    private static function projectDtoArray(array $value, string $class): mixed
     {
         $attributes = [];
         foreach ($value as $key => $item) {
@@ -138,23 +103,23 @@ final class ValidationProjector
             $attributes[$key] = $item;
         }
 
-        $inspector = new DtoInspector($class);
+        $schema = DtoSchemaCompiler::compile($class);
 
-        return self::project($inspector, InputMapper::normalize($inspector, $attributes), $path);
+        return self::project($schema, InputMapper::normalize($schema, $attributes));
     }
 
     /**
-     * @param  DtoInspector<object>  $inspector
+     * @param  DtoSchema<object>  $schema
      * @return array<string,mixed>
      *
      * @throws InspectionException
      */
-    private static function projectDtoObject(object $value, DtoInspector $inspector, string $path): array
+    private static function projectDtoObject(object $value, DtoSchema $schema): array
     {
         $attributes = [];
 
-        foreach ($inspector->getAcceptedKeys() as $field) {
-            $property = $inspector->getReflectionProperty($field);
+        foreach ($schema->fields as $field => $spec) {
+            $property = $spec->property;
             if ($property === null || ! $property->isInitialized($value)) {
                 continue;
             }
@@ -162,12 +127,9 @@ final class ValidationProjector
             $attributes[$field] = $property->getValue($value);
         }
 
-        return self::project($inspector, $attributes, $path);
+        return self::project($schema, $attributes);
     }
 
-    /**
-     * @throws InspectionException
-     */
     private static function projectValue(mixed $value): mixed
     {
         if ($value instanceof BackedEnum) {
@@ -178,16 +140,7 @@ final class ValidationProjector
             return $value->name;
         }
 
-        if ($value instanceof Collection) {
-            $items = [];
-            foreach ($value as $key => $item) {
-                $items[$key] = self::projectValue($item);
-            }
-
-            return $items;
-        }
-
-        if (is_array($value)) {
+        if ($value instanceof Collection || is_array($value)) {
             $items = [];
             foreach ($value as $key => $item) {
                 $items[$key] = self::projectValue($item);
@@ -197,10 +150,5 @@ final class ValidationProjector
         }
 
         return $value;
-    }
-
-    private static function joinPath(string $prefix, string $field): string
-    {
-        return $prefix === '' ? $field : $prefix.'.'.$field;
     }
 }

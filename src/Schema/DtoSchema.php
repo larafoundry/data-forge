@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Axiom\DataForge\Schema;
 
 use Axiom\DataForge\Validation\DtoRuleBuilder;
-use ReflectionClass;
 
 /**
  * @template T of object
@@ -16,26 +15,16 @@ final class DtoSchema
 {
     /**
      * @param  class-string<T>  $class
-     * @param  ReflectionClass<T>  $reflection
      * @param  array<string,FieldSpec>  $fields
      * @param  array<string,string|array<int,RuleValue>>  $rules
      * @param  array<string,string>  $messages
      */
     public function __construct(
         public readonly string $class,
-        public readonly ReflectionClass $reflection,
         public readonly array $fields,
         public readonly array $rules,
         public readonly array $messages,
     ) {}
-
-    /**
-     * @return array<int,string>
-     */
-    public function acceptedKeys(): array
-    {
-        return array_keys($this->fields);
-    }
 
     /**
      * @return array<int,string>
@@ -68,5 +57,13 @@ final class DtoSchema
     public function field(string $name): ?FieldSpec
     {
         return $this->fields[$name] ?? null;
+    }
+
+    /**
+     * The input key of a field: its #[MapKey] name, or the field name itself.
+     */
+    public function inputKey(string $name): string
+    {
+        return $this->fields[$name]->inputKey ?? $name;
     }
 }

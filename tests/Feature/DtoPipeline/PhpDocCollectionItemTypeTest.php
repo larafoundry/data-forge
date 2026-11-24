@@ -10,7 +10,7 @@ use Axiom\DataForge\Concerns\AsDto;
 use Axiom\DataForge\Exceptions\InspectionException;
 use Axiom\DataForge\Exceptions\InstantiationException;
 use Axiom\DataForge\Exceptions\ValidationException;
-use Axiom\DataForge\Schema\DtoInspector;
+use Axiom\DataForge\Schema\DtoSchemaCompiler;
 use Illuminate\Support\Collection;
 use IteratorAggregate;
 use PHPUnit\Framework\TestCase;
@@ -156,9 +156,9 @@ final class PhpDocCollectionItemTypeTest extends TestCase
 
     public function test_matching_var_and_param_tags_are_accepted(): void
     {
-        $inspector = new DtoInspector(DocMatchingTagsFixtureDto::class);
+        $schema = DtoSchemaCompiler::compile(DocMatchingTagsFixtureDto::class);
 
-        $this->assertSame(Person::class, $inspector->getArrayItemClassForKey('people'));
+        $this->assertSame(Person::class, $schema->field('people')?->arrayItemClass);
     }
 
     public function test_trait_phpdoc_with_fully_qualified_names_is_read(): void
@@ -221,19 +221,19 @@ final class PhpDocCollectionItemTypeTest extends TestCase
 
     public function test_phpstan_and_psalm_tags_are_ignored(): void
     {
-        $inspector = new DtoInspector(DocToolSpecificTagsFixtureDto::class);
+        $schema = DtoSchemaCompiler::compile(DocToolSpecificTagsFixtureDto::class);
 
-        $this->assertSame(Person::class, $inspector->getArrayItemClassForKey('people'));
-        $this->assertNull($inspector->getArrayItemClassForKey('tags'));
+        $this->assertSame(Person::class, $schema->field('people')?->arrayItemClass);
+        $this->assertNull($schema->field('tags')?->arrayItemClass);
     }
 
     public function test_non_dto_item_types_leave_the_field_untouched(): void
     {
         $fields = ['objects', 'scalars', 'mixedScalars', 'nullableScalars', 'anyObjects', 'plain', 'undocumented', 'described', 'otherTag', 'rawUnion', 'untyped'];
-        $inspector = new DtoInspector(DocNonDtoItemsFixtureDto::class);
+        $schema = DtoSchemaCompiler::compile(DocNonDtoItemsFixtureDto::class);
 
         foreach ($fields as $field) {
-            $this->assertNull($inspector->getArrayItemClassForKey($field), $field);
+            $this->assertNull($schema->field($field)?->arrayItemClass, $field);
         }
 
         $objects = new Collection([new stdClass()]);
@@ -262,7 +262,7 @@ final class PhpDocCollectionItemTypeTest extends TestCase
             "/^PHPDoc of field 'people' on ".preg_quote(DocMalformedTagFixtureDto::class, '/')." has a tag that cannot be parsed: '@param array<int, Person  \\\$people' \\(.+\\)$/"
         );
 
-        new DtoInspector(DocMalformedTagFixtureDto::class);
+        DtoSchemaCompiler::compile(DocMalformedTagFixtureDto::class);
     }
 
     public function test_stripped_doc_comments_are_a_configuration_error(): void
@@ -275,7 +275,7 @@ final class PhpDocCollectionItemTypeTest extends TestCase
                 exit;
             }
             try {
-                new Axiom\DataForge\Schema\DtoInspector(Tests\Feature\AsDto\Objects\NestedArrayDto::class);
+                Axiom\DataForge\Schema\DtoSchemaCompiler::compile(Tests\Feature\AsDto\Objects\NestedArrayDto::class);
                 echo 'no exception';
             } catch (Axiom\DataForge\Exceptions\InspectionException $e) {
                 echo $e->getMessage();
@@ -309,7 +309,7 @@ final class PhpDocCollectionItemTypeTest extends TestCase
         $this->expectException(InspectionException::class);
         $this->expectExceptionMessage($message);
 
-        new DtoInspector($class);
+        DtoSchemaCompiler::compile($class);
     }
 }
 

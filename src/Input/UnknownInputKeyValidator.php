@@ -7,24 +7,26 @@ namespace Axiom\DataForge\Input;
 use Axiom\DataForge\Exceptions\InspectionException;
 use Axiom\DataForge\Exceptions\UnknownInputKeyException;
 use Axiom\DataForge\Schema\DtoClass;
-use Axiom\DataForge\Schema\DtoInspector;
+use Axiom\DataForge\Schema\DtoSchema;
+use Axiom\DataForge\Schema\DtoSchemaCompiler;
+use Axiom\DataForge\Schema\FieldSpec;
 use ReflectionNamedType;
 
 final class UnknownInputKeyValidator
 {
     /**
-     * @param  DtoInspector<object>  $inspector
+     * @param  DtoSchema<object>  $schema
      * @param  array<string,mixed>  $attributes
      *
      * @throws InspectionException
      * @throws UnknownInputKeyException
      */
     public static function assertNoUnknownKeys(
-        DtoInspector $inspector,
+        DtoSchema $schema,
         array $attributes,
         bool $rejectsUnknownInputKeys
     ): void {
-        $errors = self::collect($inspector, $attributes, '', $rejectsUnknownInputKeys);
+        $errors = self::collect($schema, $attributes, '', $rejectsUnknownInputKeys);
 
         if ($errors !== []) {
             throw new UnknownInputKeyException($errors);
@@ -32,31 +34,31 @@ final class UnknownInputKeyValidator
     }
 
     /**
-     * @param  DtoInspector<object>  $inspector
+     * @param  DtoSchema<object>  $schema
      * @param  array<string,mixed>  $attributes
      * @return array<string,array<int,string>>
      *
      * @throws InspectionException
      */
     private static function collect(
-        DtoInspector $inspector,
+        DtoSchema $schema,
         array $attributes,
         string $path,
         bool $rejectsUnknownInputKeys
     ): array {
         $errors = $rejectsUnknownInputKeys
-            ? self::unknownKeyErrors($inspector, $attributes, $path)
+            ? self::unknownKeyErrors($schema, $attributes, $path)
             : [];
 
-        foreach ($inspector->getAcceptedKeys() as $propertyName) {
-            $inputKey = $inspector->getMappedKey($propertyName);
+        foreach ($schema->fields as $field) {
+            $inputKey = $field->inputKey;
             if (! array_key_exists($inputKey, $attributes)) {
                 continue;
             }
 
             $value = $attributes[$inputKey];
             $fieldPath = self::joinPath($path, $inputKey);
-            $itemClass = $inspector->getArrayItemClassForKey($propertyName);
+            $itemClass = $field->arrayItemClass;
 
             if ($itemClass !== null) {
                 self::mergeErrors($errors, self::collectCollection($value, $itemClass, $fieldPath));
@@ -64,7 +66,7 @@ final class UnknownInputKeyValidator
                 continue;
             }
 
-            $nestedClass = self::nestedDtoClass($inspector, $propertyName);
+            $nestedClass = self::nestedDtoClass($field);
             if ($nestedClass === null || ! is_array($value)) {
                 continue;
             }
@@ -77,7 +79,7 @@ final class UnknownInputKeyValidator
             self::mergeErrors(
                 $errors,
                 self::collect(
-                    new DtoInspector($nestedClass),
+                    DtoSchemaCompiler::compile($nestedClass),
                     $nestedAttributes,
                     $fieldPath,
                     DtoClass::rejectsUnknownInputKeys($nestedClass)
@@ -89,15 +91,15 @@ final class UnknownInputKeyValidator
     }
 
     /**
-     * @param  DtoInspector<object>  $inspector
+     * @param  DtoSchema<object>  $schema
      * @param  array<string,mixed>  $attributes
      * @return array<string,array<int,string>>
      */
-    private static function unknownKeyErrors(DtoInspector $inspector, array $attributes, string $path): array
+    private static function unknownKeyErrors(DtoSchema $schema, array $attributes, string $path): array
     {
         $acceptedInputKeys = [];
-        foreach ($inspector->getAcceptedKeys() as $propertyName) {
-            $acceptedInputKeys[$inspector->getMappedKey($propertyName)] = true;
+        foreach ($schema->fields as $field) {
+            $acceptedInputKeys[$field->inputKey] = true;
         }
 
         $errors = [];
@@ -126,7 +128,7 @@ final class UnknownInputKeyValidator
         }
 
         $errors = [];
-        $itemInspector = new DtoInspector($class);
+        $itemSchema = DtoSchemaCompiler::compile($class);
         $rejectsUnknownInputKeys = DtoClass::rejectsUnknownInputKeys($class);
 
         foreach ($value as $index => $item) {
@@ -142,7 +144,7 @@ final class UnknownInputKeyValidator
             self::mergeErrors(
                 $errors,
                 self::collect(
-                    $itemInspector,
+                    $itemSchema,
                     $attributes,
                     self::joinPath($path, (string) $index),
                     $rejectsUnknownInputKeys
@@ -154,12 +156,11 @@ final class UnknownInputKeyValidator
     }
 
     /**
-     * @param  DtoInspector<object>  $inspector
      * @return class-string|null
      */
-    private static function nestedDtoClass(DtoInspector $inspector, string $propertyName): ?string
+    private static function nestedDtoClass(FieldSpec $field): ?string
     {
-        $type = $inspector->getTypeForKey($propertyName);
+        $type = $field->type->reflectionType;
         if (! ($type instanceof ReflectionNamedType) || $type->isBuiltin()) {
             return null;
         }

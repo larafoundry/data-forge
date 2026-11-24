@@ -27,6 +27,11 @@ under **Changed** or **Removed**.
 
 - `#[ArrayOf]`. Declare the item type in PHPDoc instead:
   `@param Collection<int, UserDto> $members`.
+- Undocumented internal classes and methods that only forwarded calls or
+  served tests: `DtoInspector` (read `DtoSchemaCompiler::compile()` instead),
+  `RulePlanner`, the public `Validator` constructor and its `validateSafe()`,
+  `getErrors()`, `getCustomRules()`, and `getAttributes()`. Use the `AsDto`
+  entry points (`fromArray()`, `fromJson()`, `fromArrayable()`).
 
 ### Changed
 
@@ -40,6 +45,8 @@ under **Changed** or **Removed**.
   and `@psalm-*` tags are not read.
 - A `Collection` subclass that cannot be built from the item list, or does not
   keep it, throws `InstantiationException`.
+- Compiling a DTO schema no longer evaluates default values. Like PHP, a
+  default such as `new Ticket()` is evaluated only when the field is omitted.
 
 ## [0.1.0-beta.1]
 

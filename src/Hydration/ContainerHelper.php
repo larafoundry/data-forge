@@ -6,7 +6,6 @@ namespace Axiom\DataForge\Hydration;
 
 use Axiom\DataForge\Exceptions\InstantiationException;
 use ReflectionClass;
-use ReflectionParameter;
 use ReflectionType;
 use Throwable;
 
@@ -43,7 +42,7 @@ final class ContainerHelper
                     $usedKeys[] = $name;
                 } elseif ($param->isDefaultValueAvailable()) {
                     $constructorArguments[] = $param->getDefaultValue();
-                } elseif (self::parameterAllowsNull($param)) {
+                } elseif (self::typeAllowsNull($param->getType())) {
                     $constructorArguments[] = null;
                 } else {
                     throw new InstantiationException("Missing required parameter: $name");
@@ -115,11 +114,6 @@ final class ContainerHelper
         } catch (Throwable $e) {
             throw new InstantiationException("Failed to assign property '$name' on $class", 0, $e);
         }
-    }
-
-    private static function parameterAllowsNull(ReflectionParameter $param): bool
-    {
-        return self::typeAllowsNull($param->getType());
     }
 
     private static function typeAllowsNull(?ReflectionType $type): bool

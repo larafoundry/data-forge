@@ -8,7 +8,7 @@ use Axiom\DataForge\Attributes\DateFormat;
 use Axiom\DataForge\Concerns\AsDto;
 use Axiom\DataForge\Exceptions\ValidationException;
 use Axiom\DataForge\Hydration\DtoHydrator;
-use Axiom\DataForge\Schema\DtoInspector;
+use Axiom\DataForge\Schema\DtoSchemaCompiler;
 use Carbon\Carbon;
 use Carbon\CarbonImmutable;
 use DateTime;
@@ -19,7 +19,7 @@ final class SpatieCastPortTest extends TestCase
     public function test_hydrator_casts_backed_enum_values(): void
     {
         $hydrated = DtoHydrator::hydrate(
-            new DtoInspector(SpatieCastStateDto::class),
+            DtoSchemaCompiler::compile(SpatieCastStateDto::class),
             ['status' => 'draft']
         );
 
@@ -42,7 +42,7 @@ final class SpatieCastPortTest extends TestCase
     public function test_hydrator_casts_date_format_values(): void
     {
         $hydrated = DtoHydrator::hydrate(
-            new DtoInspector(SpatieCastFormattedDateDto::class),
+            DtoSchemaCompiler::compile(SpatieCastFormattedDateDto::class),
             ['createdAt' => '19-05-1994 00:00:00']
         );
 
@@ -92,7 +92,7 @@ final class SpatieCastPortTest extends TestCase
     public function test_hydrator_passes_through_existing_backed_enum_instance(): void
     {
         $hydrated = DtoHydrator::hydrate(
-            new DtoInspector(SpatieCastStateDto::class),
+            DtoSchemaCompiler::compile(SpatieCastStateDto::class),
             ['status' => SpatieCastStatus::Published]
         );
 
@@ -129,7 +129,7 @@ final class SpatieCastPortTest extends TestCase
     public function test_hydrator_casts_int_backed_enum_from_backing_int(): void
     {
         $hydrated = DtoHydrator::hydrate(
-            new DtoInspector(SpatieCastIntStateDto::class),
+            DtoSchemaCompiler::compile(SpatieCastIntStateDto::class),
             ['level' => 2]
         );
 
@@ -153,7 +153,7 @@ final class SpatieCastPortTest extends TestCase
     public function test_hydrator_casts_carbon_with_date_format(): void
     {
         $hydrated = DtoHydrator::hydrate(
-            new DtoInspector(SpatieCastCarbonDateDto::class),
+            DtoSchemaCompiler::compile(SpatieCastCarbonDateDto::class),
             ['createdAt' => '19-05-1994 00:00:00']
         );
 
@@ -164,7 +164,7 @@ final class SpatieCastPortTest extends TestCase
     public function test_hydrator_casts_datetime_with_date_format(): void
     {
         $hydrated = DtoHydrator::hydrate(
-            new DtoInspector(SpatieCastDateTimeDateDto::class),
+            DtoSchemaCompiler::compile(SpatieCastDateTimeDateDto::class),
             ['createdAt' => '19-05-1994 00:00:00']
         );
 

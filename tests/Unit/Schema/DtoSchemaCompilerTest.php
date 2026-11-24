@@ -7,7 +7,6 @@ namespace Tests\Unit\Schema;
 use Axiom\DataForge\Attributes\MapKey;
 use Axiom\DataForge\Concerns\AsDto;
 use Axiom\DataForge\Exceptions\InspectionException;
-use Axiom\DataForge\Schema\DtoInspector;
 use Axiom\DataForge\Schema\DtoSchemaCompiler;
 use PHPUnit\Framework\TestCase;
 
@@ -15,10 +14,10 @@ final class DtoSchemaCompilerTest extends TestCase
 {
     public function test_static_public_properties_are_not_dto_input_fields(): void
     {
-        $inspector = new DtoInspector(StaticPublicMetadataFixtureDto::class);
+        $schema = DtoSchemaCompiler::compile(StaticPublicMetadataFixtureDto::class);
 
-        $this->assertSame(['name'], $inspector->getAcceptedKeys());
-        $this->assertSame(['name'], $inspector->getRequiredKeys());
+        $this->assertSame(['name'], array_keys($schema->fields));
+        $this->assertSame(['name'], $schema->requiredKeys());
     }
 
     public function test_static_public_property_does_not_break_hydration(): void
@@ -34,7 +33,7 @@ final class DtoSchemaCompilerTest extends TestCase
     {
         $schema = DtoSchemaCompiler::compile(SchemaFieldMetadataFixtureDto::class);
 
-        $this->assertSame(['displayName', 'email', 'name'], $schema->acceptedKeys());
+        $this->assertSame(['displayName', 'email', 'name'], array_keys($schema->fields));
         $this->assertSame(['email', 'name'], $schema->requiredKeys());
         $this->assertSame([
             'displayName' => 'display_name',
@@ -46,9 +45,26 @@ final class DtoSchemaCompilerTest extends TestCase
 
         $this->assertNotNull($displayName);
         $this->assertFalse($displayName->required);
-        $this->assertTrue($displayName->nullable);
-        $this->assertTrue($displayName->hasDefault);
-        $this->assertNull($displayName->defaultValue);
+        $this->assertTrue($displayName->type->allowsNull());
+    }
+
+    /**
+     * Like PHP, a default value is evaluated only when the field is omitted.
+     * Compiling a schema has no side effects, so a default such as
+     * `new Ticket()` is not constructed just to inspect the DTO.
+     */
+    public function test_default_values_are_evaluated_only_when_the_field_is_omitted(): void
+    {
+        SchemaDefaultCounter::$created = 0;
+
+        DtoSchemaCompiler::compile(SchemaLazyDefaultFixtureDto::class);
+        $this->assertSame(0, SchemaDefaultCounter::$created);
+
+        SchemaLazyDefaultFixtureDto::fromArray(['counter' => new SchemaDefaultCounter()]);
+        $this->assertSame(1, SchemaDefaultCounter::$created);
+
+        SchemaLazyDefaultFixtureDto::fromArray([]);
+        $this->assertSame(2, SchemaDefaultCounter::$created);
     }
 
     public function test_compiler_stores_dto_rules_and_messages_on_the_schema(): void
@@ -182,4 +198,21 @@ final class NonArrayMessagesSchemaFixtureDto
     {
         return 'name is required';
     }
+}
+
+final class SchemaDefaultCounter
+{
+    public static int $created = 0;
+
+    public function __construct()
+    {
+        self::$created++;
+    }
+}
+
+final class SchemaLazyDefaultFixtureDto
+{
+    use AsDto;
+
+    public function __construct(public readonly SchemaDefaultCounter $counter = new SchemaDefaultCounter()) {}
 }

@@ -7,7 +7,7 @@ namespace Tests\Unit\Input;
 use Axiom\DataForge\Attributes\MapKey;
 use Axiom\DataForge\Concerns\AsDto;
 use Axiom\DataForge\Input\InputMapper;
-use Axiom\DataForge\Schema\DtoInspector;
+use Axiom\DataForge\Schema\DtoSchemaCompiler;
 use PHPUnit\Framework\TestCase;
 
 final class InputMapperTest extends TestCase
@@ -15,7 +15,7 @@ final class InputMapperTest extends TestCase
     public function test_normalize_maps_external_input_keys_to_canonical_keys(): void
     {
         $normalized = InputMapper::normalize(
-            new DtoInspector(MappedInputFixtureDto::class),
+            DtoSchemaCompiler::compile(MappedInputFixtureDto::class),
             [
                 'first_name' => 'Ada',
                 'firstName' => 'ignored',

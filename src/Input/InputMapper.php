@@ -4,24 +4,21 @@ declare(strict_types=1);
 
 namespace Axiom\DataForge\Input;
 
-use Axiom\DataForge\Schema\DtoInspector;
+use Axiom\DataForge\Schema\DtoSchema;
 
 final class InputMapper
 {
     /**
-     * @param  DtoInspector<object>  $inspector
+     * @param  DtoSchema<object>  $schema
      * @param  array<string,mixed>  $attributes
      * @return array<string,mixed>
      */
-    public static function normalize(DtoInspector $inspector, array $attributes): array
+    public static function normalize(DtoSchema $schema, array $attributes): array
     {
-        $keyMap = $inspector->getKeyMap();
-
         $normalized = [];
-        foreach ($inspector->getAcceptedKeys() as $propertyName) {
-            $inputKey = $keyMap[$propertyName] ?? $propertyName;
-            if (array_key_exists($inputKey, $attributes)) {
-                $normalized[$propertyName] = $attributes[$inputKey];
+        foreach ($schema->fields as $propertyName => $field) {
+            if (array_key_exists($field->inputKey, $attributes)) {
+                $normalized[$propertyName] = $attributes[$field->inputKey];
             }
         }
 

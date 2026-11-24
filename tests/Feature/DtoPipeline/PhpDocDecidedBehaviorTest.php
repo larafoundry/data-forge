@@ -6,7 +6,7 @@ namespace Tests\Feature\DtoPipeline;
 
 use Axiom\DataForge\Concerns\AsDto;
 use Axiom\DataForge\Exceptions\InspectionException;
-use Axiom\DataForge\Schema\DtoInspector;
+use Axiom\DataForge\Schema\DtoSchemaCompiler;
 use PHPUnit\Framework\TestCase;
 use Tests\Feature\AsDto\Objects\BasicDto as Person;
 use Tests\Feature\DtoPipeline\KnownLimitations\Aliased\AliasedConstructorDto;
@@ -54,7 +54,7 @@ final class PhpDocDecidedBehaviorTest extends TestCase
      */
     public function test_invalid_phpdoc_normalized_by_phpdocumentor_is_not_detected(): void
     {
-        $this->assertNull((new DtoInspector(DecidedThreeArgumentArrayDto::class))->getArrayItemClassForKey('people'));
+        $this->assertNull((DtoSchemaCompiler::compile(DecidedThreeArgumentArrayDto::class))->field('people')?->arrayItemClass);
     }
 
     /**
@@ -75,7 +75,7 @@ final class PhpDocDecidedBehaviorTest extends TestCase
         $this->expectException(InspectionException::class);
         $this->expectExceptionMessage('is not a supported DTO list');
 
-        new DtoInspector(DecidedParenthesizedNullableDto::class);
+        DtoSchemaCompiler::compile(DecidedParenthesizedNullableDto::class);
     }
 
     /**
@@ -90,7 +90,7 @@ final class PhpDocDecidedBehaviorTest extends TestCase
             "PHPDoc of field 'people' on ".DecidedUnrelatedBrokenTagDto::class." has a tag that cannot be parsed: '@throws'"
         );
 
-        new DtoInspector(DecidedUnrelatedBrokenTagDto::class);
+        DtoSchemaCompiler::compile(DecidedUnrelatedBrokenTagDto::class);
     }
 
     /**
@@ -130,7 +130,7 @@ final class PhpDocDecidedBehaviorTest extends TestCase
             .DecidedTraitImportDto::class.' does not exist'
         );
 
-        new DtoInspector(DecidedTraitImportDto::class);
+        DtoSchemaCompiler::compile(DecidedTraitImportDto::class);
     }
 
     /**
@@ -158,7 +158,7 @@ final class PhpDocDecidedBehaviorTest extends TestCase
             .GroupedImportDto::class.' does not exist'
         );
 
-        new DtoInspector(GroupedImportDto::class);
+        DtoSchemaCompiler::compile(GroupedImportDto::class);
     }
 
     /**
@@ -170,7 +170,7 @@ final class PhpDocDecidedBehaviorTest extends TestCase
     {
         $this->assertSame(
             Person::class,
-            (new DtoInspector(SecondBlockDto::class))->getArrayItemClassForKey('members')
+            (DtoSchemaCompiler::compile(SecondBlockDto::class))->field('members')?->arrayItemClass
         );
     }
 
@@ -189,7 +189,7 @@ final class PhpDocDecidedBehaviorTest extends TestCase
             .AliasedConstructorDto::class.' does not exist'
         );
 
-        new DtoInspector(AliasedConstructorDto::class);
+        DtoSchemaCompiler::compile(AliasedConstructorDto::class);
     }
 }
 
