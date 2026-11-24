@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Feature\DtoPipeline;
 
-use Axiom\DataForge\Attributes\ArrayOf;
 use Axiom\DataForge\Attributes\MapKey;
 use Axiom\DataForge\Concerns\AsDto;
 use Axiom\DataForge\Exceptions\ValidationException;
@@ -92,7 +91,6 @@ final class SpatiePortNestedCollectionParentDto
      * @param  Collection<int, SpatiePortProfileDto>  $profiles
      */
     public function __construct(
-        #[ArrayOf(SpatiePortProfileDto::class)]
         public readonly Collection $profiles,
     ) {}
 }

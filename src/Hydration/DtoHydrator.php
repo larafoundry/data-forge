@@ -64,13 +64,17 @@ final class DtoHydrator
                     continue;
                 }
 
-                $attributes[$name] = self::hydrateDtoCollection(
+                $items = self::hydrateDtoCollection(
                     $attributes[$name],
                     $arrayItemClass,
                     $name,
                     RuleScope::nestedRules($customRules, $name),
                     RuleScope::nestedMessages($customMessages, $name)
                 );
+
+                // The PHPDoc item type is only read for `array` and Collection fields.
+                $collectionClass = $inspector->getTypeSpecForKey($name)?->namedClass();
+                $attributes[$name] = $collectionClass === null ? $items : new $collectionClass($items);
 
                 continue;
             }
@@ -198,7 +202,7 @@ final class DtoHydrator
      * @param  string  $path  canonical path, used to prefix ordinary (canonical) nested errors
      * @param  array<string,array<int,RuleValue>>  $customRules
      * @param  array<string,string>  $customMessages
-     * @return Collection<array-key, object>
+     * @return list<object>
      *
      * @throws DataForgeException
      */
@@ -208,7 +212,7 @@ final class DtoHydrator
         string $path,
         array $customRules = [],
         array $customMessages = []
-    ): Collection {
+    ): array {
         if (! is_array($value)) {
             throw new ValidationException([
                 $path => ["The $path field must be an array."],
@@ -227,7 +231,7 @@ final class DtoHydrator
             $itemPath = $path.'.'.$index;
 
             if ($item instanceof $class) {
-                $result[$index] = $item;
+                $result[] = $item;
 
                 continue;
             }
@@ -239,7 +243,7 @@ final class DtoHydrator
             }
 
             try {
-                $result[$index] = self::hydrateDto(
+                $result[] = self::hydrateDto(
                     $item,
                     $class,
                     $itemPath,
@@ -255,7 +259,7 @@ final class DtoHydrator
             throw new ValidationException($errors);
         }
 
-        return new Collection($result);
+        return $result;
     }
 
     /**

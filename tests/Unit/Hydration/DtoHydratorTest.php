@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Hydration;
 
-use Axiom\DataForge\Attributes\ArrayOf;
 use Axiom\DataForge\Attributes\DateFormat;
 use Axiom\DataForge\Concerns\AsDto;
 use Axiom\DataForge\Exceptions\ValidationException;
@@ -157,7 +156,6 @@ final class HydratorCollectionFixtureDto
      * @param  Collection<int, HydratorChildFixtureDto>  $children
      */
     public function __construct(
-        #[ArrayOf(HydratorChildFixtureDto::class)]
         public readonly Collection $children,
     ) {}
 }

@@ -5,13 +5,12 @@ declare(strict_types=1);
 namespace Tests\Feature\AsDto;
 
 use Axiom\DataForge\Concerns\AsDto;
-use Axiom\DataForge\Exceptions\InspectionException;
 use Axiom\DataForge\Exceptions\ValidationException;
 use Illuminate\Support\Collection;
 use PHPUnit\Framework\TestCase;
 use Tests\Feature\AsDto\Objects\BasicDto;
-use Tests\Feature\AsDto\Objects\InvalidArrayOfArrayDto;
 use Tests\Feature\AsDto\Objects\MappedNestedDtoWithDottedRules;
+use Tests\Feature\AsDto\Objects\NestedArrayDto;
 use Tests\Feature\AsDto\Objects\NestedCollectionDto;
 use Tests\Feature\AsDto\Objects\NestedCollectionDtoWithArrayRule;
 use Tests\Feature\AsDto\Objects\NestedDto;
@@ -315,14 +314,36 @@ class NestedDtoTest extends TestCase
         }
     }
 
-    public function test_array_typed_array_of_fields_are_rejected_as_configuration_errors(): void
+    public function test_array_field_with_dto_item_phpdoc_hydrates_a_list_of_dtos(): void
     {
-        $this->expectException(InspectionException::class);
-        $this->expectExceptionMessage("Field 'people' on ".InvalidArrayOfArrayDto::class.' must be typed as '.Collection::class.' when using ArrayOf');
-
-        InvalidArrayOfArrayDto::fromArray([
-            'people' => [],
+        $dto = NestedArrayDto::fromArray([
+            'people' => [
+                ['name' => 'John Doe', 'age' => 30],
+                ['name' => 'Jane Doe', 'age' => 28, 'email' => 'jane@example.com'],
+            ],
         ]);
+
+        $this->assertIsArray($dto->people);
+        $this->assertCount(2, $dto->people);
+        $this->assertContainsOnlyInstancesOf(BasicDto::class, $dto->people);
+        $this->assertSame('Jane Doe', $dto->people[1]->name);
+        $this->assertSame('jane@example.com', $dto->people[1]->email);
+    }
+
+    public function test_array_field_with_dto_item_phpdoc_reports_item_errors(): void
+    {
+        try {
+            NestedArrayDto::fromArray([
+                'people' => [
+                    ['name' => 'John Doe', 'age' => 30],
+                    ['name' => 'Jane Doe', 'age' => 'unknown'],
+                ],
+            ]);
+
+            $this->fail('Validation should have failed');
+        } catch (ValidationException $e) {
+            $this->assertSame(['people.1.age' => ['The age field has an invalid type.']], $e->errors);
+        }
     }
 }
 

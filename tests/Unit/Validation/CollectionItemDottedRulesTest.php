@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Validation;
 
-use Axiom\DataForge\Attributes\ArrayOf;
 use Axiom\DataForge\Concerns\AsDto;
 use Axiom\DataForge\Exceptions\ValidationException;
 use Illuminate\Support\Collection;
@@ -43,7 +42,6 @@ final class CollectionItemDottedRulesParentFixtureDto
      * @param  Collection<int, CollectionItemDottedRulesChildFixtureDto>  $children
      */
     public function __construct(
-        #[ArrayOf(CollectionItemDottedRulesChildFixtureDto::class)]
         public readonly Collection $children,
     ) {}
 

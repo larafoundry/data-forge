@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Schema;
 
-use Axiom\DataForge\Attributes\ArrayOf;
 use Axiom\DataForge\Attributes\MapKey;
 use Axiom\DataForge\Concerns\AsDto;
 use Axiom\DataForge\Exceptions\InspectionException;
@@ -84,7 +83,6 @@ final class InspectorFixtureDto
      */
     public function __construct(
         public readonly string $name,
-        #[ArrayOf(InspectorChildFixtureDto::class)]
         public readonly ?Collection $children = null,
     ) {}
 

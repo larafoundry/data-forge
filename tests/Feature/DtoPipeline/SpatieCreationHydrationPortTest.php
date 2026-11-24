@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Feature\DtoPipeline;
 
-use Axiom\DataForge\Attributes\ArrayOf;
 use Axiom\DataForge\Concerns\AsDto;
 use Axiom\DataForge\Exceptions\ValidationException;
 use Illuminate\Support\Collection;
@@ -188,7 +187,7 @@ final class SpatieCreationHydrationPortTest extends TestCase
                 ],
             ]);
 
-            $this->fail('Expected associative ArrayOf input to fail validation.');
+            $this->fail('Expected associative collection input to fail validation.');
         } catch (ValidationException $e) {
             $this->assertArrayHasKey('profiles', $e->errors);
         }
@@ -242,7 +241,6 @@ final class SpatiePortTeamDto
      * @param  Collection<int, SpatieCreationProfileDto>  $profiles
      */
     public function __construct(
-        #[ArrayOf(SpatieCreationProfileDto::class)]
         public readonly Collection $profiles,
     ) {}
 }
@@ -255,7 +253,6 @@ final class SpatieTrustedTeamDto
      * @param  Collection<int, SpatieTrustedProfileDto>  $profiles
      */
     public function __construct(
-        #[ArrayOf(SpatieTrustedProfileDto::class)]
         public readonly Collection $profiles,
     ) {}
 }

@@ -42,6 +42,8 @@ Important boundaries:
 - `DtoSchemaCompiler`, `DtoSchema`, `FieldSpec`, and `TypeSpec` are the cached
   schema source of truth for DTO fields, rules, messages, types, defaults, and
   input keys.
+- `DocBlockItemType` reads DTO item types of `array`/`Collection` fields from
+  PHPDoc using phpDocumentor (`reflection-docblock` + `type-resolver`).
 - `DtoInspector` is the read API over the compiled schema.
 - `DtoContract` is the only place that should call DTO static `rules()` and
   `messages()`.
@@ -64,14 +66,14 @@ Important boundaries:
 - DTOs using `AsStrictInputDto` reject unknown raw input keys.
 - For mapped fields, the mapped external key is the accepted input key. The
   canonical property name is not an alias.
-- Nested DTOs and `#[ArrayOf]` items use the canonical validator/hydrator
-  pipeline. Custom `fromArray()` overrides are root-level entry points only.
+- Nested DTOs and PHPDoc-typed collection items use the canonical
+  validator/hydrator pipeline. Custom `fromArray()` overrides are root-level entry points only.
 - Nested values already instantiated as the expected DTO class are treated as
   trusted canonical objects. `fromArray()` preserves them and does not rerun
   the child DTO's static `rules()` or custom `fromArray()` override; parent
   dotted rules still validate at the root boundary.
-- Nested `#[ArrayOf]` DTO collection validation aggregates all invalid item
-  errors; do not stop after the first invalid item.
+- Nested DTO collection validation aggregates all invalid item errors; do not
+  stop after the first invalid item.
 - Union DTO/object hydration targets are unsupported. Types such as
   `UserDto|AdminDto`, `object|UserDto`, or similar ambiguous object unions
   should not be treated as supported nested input contracts.
@@ -88,8 +90,11 @@ Important boundaries:
   `fromArray()`, `fromJson()`, and `fromArrayable()` only.
 - Builtin scalar fields are validated by type; they are not broadly auto-cast
   from strings. Backed enums and date-like objects are cast by `DtoHydrator`.
-- Runtime collection item types are never inferred from PHPDoc/docblocks; use
-  `#[ArrayOf]` for typed DTO collections.
+- DTO collection item types come from traditional PHPDoc on `array` and
+  `Collection` fields (`@param` on the constructor, `@var` on the property),
+  read by `DocBlockItemType` through phpDocumentor. Never hand-write a docblock
+  or type parser. `@phpstan-*` and `@psalm-*` tags are not read yet. Forms that
+  name a DTO but cannot be honored are `InspectionException`s.
 - Spatie-style `DataCollection`, paginated/cursor collections, and custom
   collection wrapper APIs are outside the current package scope.
 - Custom casts, global casts, scalar coercion, and collection coercion are not
@@ -110,7 +115,8 @@ namespaces: raw external keys and canonical DTO keys.
 Focused areas:
 
 - DTO schema/reflection: `src/Schema/DtoSchemaCompiler.php`,
-  `src/Schema/DtoInspector.php`, `src/Schema/TypeSpec.php`.
+  `src/Schema/DtoInspector.php`, `src/Schema/TypeSpec.php`,
+  `src/Schema/DocBlockItemType.php`.
 - Input mapping/errors: `src/Input/InputMapper.php`,
   `src/Input/UnknownInputKeyValidator.php`, `src/Input/ErrorKeyMapper.php`.
 - Validation flow: `src/Validation/Validator.php`,

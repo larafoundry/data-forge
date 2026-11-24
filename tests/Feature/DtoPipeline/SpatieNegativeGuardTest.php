@@ -65,9 +65,9 @@ final class SpatieNegativeGuardTest extends TestCase
         }
     }
 
-    public function test_collection_field_without_array_of_rejects_array_input(): void
+    public function test_collection_field_without_dto_item_phpdoc_rejects_array_input(): void
     {
-        // Without #[ArrayOf] there is no item contract, so an array of records
+        // Without a DTO item type in PHPDoc there is no item contract, so an array of records
         // must not be coerced into a typed Collection nor inferred from shape.
         try {
             GuardPlainCollectionDto::fromArray([

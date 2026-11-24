@@ -4,15 +4,16 @@ declare(strict_types=1);
 
 namespace Tests\Feature\AsDto\Objects;
 
-use Axiom\DataForge\Attributes\ArrayOf;
 use Axiom\DataForge\Concerns\AsDto;
 
-class InvalidArrayOfArrayDto
+class NestedArrayDto
 {
     use AsDto;
 
+    /**
+     * @param  BasicDto[]  $people
+     */
     public function __construct(
-        #[ArrayOf(BasicDto::class)]
         public readonly array $people
     ) {}
 }

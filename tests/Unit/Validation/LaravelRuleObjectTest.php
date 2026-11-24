@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Validation;
 
-use Axiom\DataForge\Attributes\ArrayOf;
 use Axiom\DataForge\Concerns\AsDto;
 use Axiom\DataForge\Exceptions\InspectionException;
 use Axiom\DataForge\Exceptions\ValidationException;
@@ -312,7 +311,6 @@ final class LaravelRuleCollectionParentDto
      * @param  Collection<int, LaravelRuleCollectionItemDto>  $items
      */
     public function __construct(
-        #[ArrayOf(LaravelRuleCollectionItemDto::class)]
         public readonly Collection $items,
     ) {}
 

@@ -12,6 +12,27 @@ under **Changed** or **Removed**.
 ### Added
 
 - Support for PHP 8.6.
+- DTO collection item types are read from traditional PHPDoc on `array` and
+  `Collection` fields: `Collection<int, UserDto>`, `Collection<UserDto>`,
+  `UserDto[]`, `Collection|UserDto[]`, `array<int, UserDto>`, and nullable
+  forms, from constructor `@param` or property `@var` tags. Parsing uses
+  `phpdocumentor/reflection-docblock` ^6.0 and `phpdocumentor/type-resolver`
+  ^2.0.
+- `array` fields with a DTO item type hydrate into a list of DTOs, and
+  `Collection` subclasses hydrate into the declared class.
+
+### Removed
+
+- `#[ArrayOf]`. Declare the item type in PHPDoc instead:
+  `@param Collection<int, UserDto> $members`.
+
+### Changed
+
+- A collection PHPDoc that names a DTO item type in a form Data Forge cannot
+  honor throws `InspectionException`. This covers an unknown class, PHPStan-only
+  types such as `list<UserDto>`, non-int keys, nullable items, conflicting
+  `@param`/`@var` tags, and unions of DTO item types. `@phpstan-*` and
+  `@psalm-*` tags are not read.
 
 ## [0.1.0-beta.1]
 

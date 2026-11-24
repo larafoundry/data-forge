@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Feature\DtoPipeline;
 
-use Axiom\DataForge\Attributes\ArrayOf;
 use Axiom\DataForge\Attributes\MapKey;
 use Axiom\DataForge\Concerns\AsDto;
 use Axiom\DataForge\Exceptions\ValidationException;
@@ -131,7 +130,6 @@ final class SpatieMessageCollectionParentDto
      * @param  Collection<int, SpatieMessageProfileDto>  $profiles
      */
     public function __construct(
-        #[ArrayOf(SpatieMessageProfileDto::class)]
         public readonly Collection $profiles,
     ) {}
 }
@@ -171,7 +169,6 @@ final class SpatieMessageWildcardCollectionParentDto
      * @param  Collection<int, SpatieMessagePlainProfileDto>  $profiles
      */
     public function __construct(
-        #[ArrayOf(SpatieMessagePlainProfileDto::class)]
         public readonly Collection $profiles,
     ) {}
 
@@ -194,7 +191,6 @@ final class SpatieMessageTeamDirectoryDto
      * @param  Collection<int, SpatieMessageTeamDto>  $teams
      */
     public function __construct(
-        #[ArrayOf(SpatieMessageTeamDto::class)]
         public readonly Collection $teams,
     ) {}
 
@@ -217,7 +213,6 @@ final class SpatieMessageTeamDto
      * @param  Collection<int, SpatieMessageMemberDto>  $members
      */
     public function __construct(
-        #[ArrayOf(SpatieMessageMemberDto::class)]
         public readonly Collection $members,
     ) {}
 }
