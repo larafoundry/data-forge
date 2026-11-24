@@ -85,7 +85,7 @@ final class InputShapeEdgeCasesTest extends TestCase
         $schema = DtoSchemaCompiler::compile(EdgeStaticShadowFixtureDto::class);
         $dto = EdgeStaticShadowFixtureDto::fromArray(['name' => 'Ada']);
 
-        $this->assertSame(['name'], $schema->acceptedKeys());
+        $this->assertSame(['name'], array_keys($schema->fields));
         $this->assertNull($schema->field('name')?->property);
         $this->assertSame('Ada', $dto->stored());
     }

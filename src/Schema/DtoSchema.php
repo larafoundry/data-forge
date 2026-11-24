@@ -29,14 +29,6 @@ final class DtoSchema
     /**
      * @return array<int,string>
      */
-    public function acceptedKeys(): array
-    {
-        return array_keys($this->fields);
-    }
-
-    /**
-     * @return array<int,string>
-     */
     public function requiredKeys(): array
     {
         $required = [];

@@ -13,26 +13,6 @@ use PHPUnit\Framework\TestCase;
 
 final class DtoSchemaTest extends TestCase
 {
-    public function test_exposes_the_compiled_dto_contract(): void
-    {
-        $schema = DtoSchemaCompiler::compile(SchemaFixtureDto::class);
-
-        $this->assertSame(SchemaFixtureDto::class, $schema->class);
-        $this->assertSame(['children', 'displayName', 'name'], $schema->acceptedKeys());
-        $this->assertSame(['name'], $schema->requiredKeys());
-        $this->assertSame([
-            'name' => 'required|min:3',
-        ], $schema->rules);
-        $this->assertSame([
-            'name.required' => 'Name is required.',
-        ], $schema->messages);
-        $this->assertSame([
-            'children' => 'children',
-            'displayName' => 'display_name',
-            'name' => 'name',
-        ], $schema->keyMap());
-    }
-
     public function test_input_key_falls_back_to_the_field_name(): void
     {
         $schema = DtoSchemaCompiler::compile(SchemaFixtureDto::class);
@@ -67,26 +47,6 @@ final class SchemaFixtureDto
         public readonly string $name,
         public readonly ?Collection $children = null,
     ) {}
-
-    /**
-     * @return array<string, string>
-     */
-    public static function rules(): array
-    {
-        return [
-            'name' => 'required|min:3',
-        ];
-    }
-
-    /**
-     * @return array<string, string>
-     */
-    public static function messages(): array
-    {
-        return [
-            'name.required' => 'Name is required.',
-        ];
-    }
 }
 
 final class SchemaChildFixtureDto

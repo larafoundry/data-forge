@@ -261,8 +261,6 @@ final class Validator
      * fields, so the message text matches the error key the caller sees.
      *
      * @return array<string,string>
-     *
-     * @throws InspectionException
      */
     private function displayAttributes(): array
     {

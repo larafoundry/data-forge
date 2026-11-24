@@ -24,7 +24,7 @@ final class SpatieSchemaReflectionPortTest extends TestCase
             'publicDefault',
             'requiredPublic',
             'role',
-        ], $schema->acceptedKeys());
+        ], array_keys($schema->fields));
         $this->assertSame(['name', 'requiredPublic'], $schema->requiredKeys());
 
         $role = $schema->field('role');
@@ -46,7 +46,7 @@ final class SpatieSchemaReflectionPortTest extends TestCase
     {
         $schema = DtoSchemaCompiler::compile(SpatieSchemaParameterFixtureDto::class);
 
-        $this->assertSame(['name', 'suffix'], $schema->acceptedKeys());
+        $this->assertSame(['name', 'suffix'], array_keys($schema->fields));
         $this->assertSame(['name'], $schema->requiredKeys());
 
         $name = $schema->field('name');

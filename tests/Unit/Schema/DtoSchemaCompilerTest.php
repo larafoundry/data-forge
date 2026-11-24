@@ -16,7 +16,7 @@ final class DtoSchemaCompilerTest extends TestCase
     {
         $schema = DtoSchemaCompiler::compile(StaticPublicMetadataFixtureDto::class);
 
-        $this->assertSame(['name'], $schema->acceptedKeys());
+        $this->assertSame(['name'], array_keys($schema->fields));
         $this->assertSame(['name'], $schema->requiredKeys());
     }
 
@@ -33,7 +33,7 @@ final class DtoSchemaCompilerTest extends TestCase
     {
         $schema = DtoSchemaCompiler::compile(SchemaFieldMetadataFixtureDto::class);
 
-        $this->assertSame(['displayName', 'email', 'name'], $schema->acceptedKeys());
+        $this->assertSame(['displayName', 'email', 'name'], array_keys($schema->fields));
         $this->assertSame(['email', 'name'], $schema->requiredKeys());
         $this->assertSame([
             'displayName' => 'display_name',

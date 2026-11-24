@@ -82,12 +82,9 @@ final class DtoRuleBuilder
             }
         }
 
-        $acceptedKeys = $schema->acceptedKeys();
-
         foreach ($customRules as $field => $fieldRules) {
             $rootField = explode('.', $field, 2)[0];
-            // Check if the field exists in the DTO before adding rules for it
-            if (! in_array($rootField, $acceptedKeys, true)) {
+            if (! isset($schema->fields[$rootField])) {
                 throw new InspectionException(
                     "Cannot add validation rules for field '$field' because root field '$rootField' does not exist in the DTO."
                 );

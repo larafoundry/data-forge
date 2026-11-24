@@ -98,8 +98,8 @@ final class UnknownInputKeyValidator
     private static function unknownKeyErrors(DtoSchema $schema, array $attributes, string $path): array
     {
         $acceptedInputKeys = [];
-        foreach ($schema->acceptedKeys() as $propertyName) {
-            $acceptedInputKeys[$schema->inputKey($propertyName)] = true;
+        foreach ($schema->fields as $field) {
+            $acceptedInputKeys[$field->inputKey] = true;
         }
 
         $errors = [];
