@@ -9,6 +9,10 @@ under **Changed** or **Removed**.
 
 ## [Unreleased]
 
+### Added
+
+- Support for PHP 8.6.
+
 ## [0.1.0-beta.1]
 
 First public beta.

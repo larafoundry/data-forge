@@ -94,6 +94,8 @@ jobs:
             illuminate: '13.*'
           - php: '8.5'
             illuminate: '13.*'
+          - php: '8.6'
+            illuminate: '13.*'
 
     steps:
       - name: Checkout
