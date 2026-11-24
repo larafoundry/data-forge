@@ -31,6 +31,7 @@ use phpDocumentor\Reflection\Types\Self_;
 use phpDocumentor\Reflection\Types\Static_;
 use phpDocumentor\Reflection\Types\This;
 use ReflectionClass;
+use ReflectionIntersectionType;
 use ReflectionMethod;
 use ReflectionNamedType;
 use ReflectionParameter;
@@ -99,14 +100,15 @@ final class DocBlockItemType
     }
 
     /**
-     * `array`, a Collection class, false for an unsupported native union that
-     * contains one of them, or null when the field is not a collection at all.
+     * `array`, a Collection class, false for an unsupported native union or
+     * intersection that contains one of them, or null when the field is not a
+     * collection at all.
      *
      * @return self::ARRAY|class-string<Collection<array-key, mixed>>|false|null
      */
     private static function container(?ReflectionType $nativeType): string|false|null
     {
-        if ($nativeType instanceof ReflectionUnionType) {
+        if ($nativeType instanceof ReflectionUnionType || $nativeType instanceof ReflectionIntersectionType) {
             foreach ($nativeType->getTypes() as $type) {
                 if (self::container($type) !== null) {
                     return false;
@@ -284,7 +286,7 @@ final class DocBlockItemType
 
         if ($container === false) {
             throw new InspectionException(
-                "Field '$name' on $class declares DTO items in PHPDoc '$type' but has a union native type; use 'array' or a Collection class"
+                "Field '$name' on $class declares DTO items in PHPDoc '$type' but has a union or intersection native type; use 'array' or a Collection class"
             );
         }
 

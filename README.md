@@ -405,6 +405,8 @@ resolves `use` imports and aliases:
 - Item types that are not DTO objects (such as `Collection<int, string>` or
   `class-string<UserDto>[]`) leave the field untouched. Untyped fields are
   never hydrated.
+- Default values are written by the DTO author and used as they are; they are
+  not hydrated.
 
 PHPStan and Psalm specific tags (`@phpstan-param`, `@psalm-var`, ...) are not
 read. When the PHPDoc of an `array` or `Collection` field names a DTO anywhere,
@@ -417,7 +419,7 @@ it must be exactly one of the forms above. Anything else throws
 - keys other than `int` (including `positive-int`), nullable items, nested
   lists such as `UserDto[][]`, or `static[]` and `parent[]`
 - a DTO list mixed with other types, such as `UserDto[]|string[]`
-- more than one DTO item type, or a union native type such as `array|Collection`
+- more than one DTO item type, or a union or intersection native type such as `array|Collection`
 - more than one `@param` (or `@var`) tag for the same field
 - trait PHPDoc that resolves to a different type in the using class
 

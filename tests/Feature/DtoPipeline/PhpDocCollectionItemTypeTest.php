@@ -51,7 +51,12 @@ final class PhpDocCollectionItemTypeTest extends TestCase
         yield 'union native type' => [
             DocUnionNativeFixtureDto::class,
             "Field 'people' on ".DocUnionNativeFixtureDto::class." declares DTO items in PHPDoc '\\".Person::class
-                .'[]\' but has a union native type; use \'array\' or a Collection class',
+                .'[]\' but has a union or intersection native type; use \'array\' or a Collection class',
+        ];
+        yield 'intersection native type' => [
+            DocIntersectionNativeFixtureDto::class,
+            "Field 'people' on ".DocIntersectionNativeFixtureDto::class." declares DTO items in PHPDoc '\\".Person::class
+                .'[]\' but has a union or intersection native type; use \'array\' or a Collection class',
         ];
         yield 'two @param tags for the field' => [
             DocDuplicateParamFixtureDto::class,
@@ -767,4 +772,16 @@ final class DocUnparsableShapeFixtureDto
      * @param  non-empty-array{first: Person}  $people
      */
     public function __construct(public readonly array $people) {}
+}
+
+interface DocMarker {}
+
+final class DocIntersectionNativeFixtureDto
+{
+    use AsDto;
+
+    /**
+     * @param  Person[]  $people
+     */
+    public function __construct(public readonly Collection&DocMarker $people) {}
 }

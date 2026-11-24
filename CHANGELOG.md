@@ -36,7 +36,7 @@ under **Changed** or **Removed**.
   `list<UserDto>`, keys other than `int`, nullable items, nested lists,
   `static[]`/`parent[]`, DTO lists mixed with other types, conflicting or
   repeated `@param`/`@var` tags, trait PHPDoc that resolves differently in the
-  using class, and union native types.
+  using class, and union or intersection native types.
   Stripped doc comments (`opcache.save_comments=0`) also throw. `@phpstan-*`
   and `@psalm-*` tags are not read.
 - A `Collection` subclass that cannot be built from the item list, or does not
