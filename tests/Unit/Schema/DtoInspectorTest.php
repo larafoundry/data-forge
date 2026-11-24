@@ -10,6 +10,7 @@ use Axiom\DataForge\Concerns\AsDto;
 use Axiom\DataForge\Exceptions\InspectionException;
 use Axiom\DataForge\Schema\DtoInspector;
 use Axiom\DataForge\Schema\TypeSpec;
+use Illuminate\Support\Collection;
 use PHPUnit\Framework\TestCase;
 
 final class DtoInspectorTest extends TestCase
@@ -79,12 +80,12 @@ final class InspectorFixtureDto
     public ?string $displayName = null;
 
     /**
-     * @param  array<int, InspectorChildFixtureDto>  $children
+     * @param  Collection<int, InspectorChildFixtureDto>|null  $children
      */
     public function __construct(
         public readonly string $name,
         #[ArrayOf(InspectorChildFixtureDto::class)]
-        public readonly array $children = [],
+        public readonly ?Collection $children = null,
     ) {}
 
     /**
@@ -110,5 +111,7 @@ final class InspectorFixtureDto
 
 final class InspectorChildFixtureDto
 {
+    use AsDto;
+
     public function __construct(public readonly string $name) {}
 }

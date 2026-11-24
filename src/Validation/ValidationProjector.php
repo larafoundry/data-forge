@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Axiom\DataForge\Validation;
 
 use Axiom\DataForge\Exceptions\InspectionException;
-use Axiom\DataForge\Exceptions\ValidationException;
 use Axiom\DataForge\Input\InputMapper;
 use Axiom\DataForge\Schema\DtoClass;
 use Axiom\DataForge\Schema\DtoInspector;
@@ -141,13 +140,7 @@ final class ValidationProjector
 
         $inspector = new DtoInspector($class);
 
-        try {
-            $normalized = InputMapper::normalize($inspector, $attributes);
-        } catch (ValidationException $e) {
-            throw new ValidationException(self::prefixErrors($e->errors, $path));
-        }
-
-        return self::project($inspector, $normalized, $path);
+        return self::project($inspector, InputMapper::normalize($inspector, $attributes), $path);
     }
 
     /**
@@ -209,23 +202,5 @@ final class ValidationProjector
     private static function joinPath(string $prefix, string $field): string
     {
         return $prefix === '' ? $field : $prefix.'.'.$field;
-    }
-
-    /**
-     * @param  array<string,array<int,string>>  $errors
-     * @return array<string,array<int,string>>
-     */
-    private static function prefixErrors(array $errors, string $prefix): array
-    {
-        if ($prefix === '') {
-            return $errors;
-        }
-
-        $prefixed = [];
-        foreach ($errors as $key => $messages) {
-            $prefixed[$prefix.'.'.$key] = $messages;
-        }
-
-        return $prefixed;
     }
 }

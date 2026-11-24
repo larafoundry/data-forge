@@ -44,7 +44,11 @@
     "pint": "vendor/bin/pint",
     "pint:test": "vendor/bin/pint --test",
     "phpstan": "vendor/bin/phpstan",
-    "test": "vendor/bin/phpunit"
+    "test": "vendor/bin/phpunit",
+    "coverage": [
+      "@php -d pcov.enabled=1 vendor/bin/phpunit --coverage-clover build/coverage/clover.xml",
+      "@php tools/coverage-check.php build/coverage/clover.xml"
+    ]
   },
   "require-dev": {
     "laravel/pint": "^1.13 <1.21",

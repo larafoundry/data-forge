@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature\AsDto;
 
 use Axiom\DataForge\Concerns\AsDto;
+use Axiom\DataForge\Exceptions\InspectionException;
 use Axiom\DataForge\Exceptions\ValidationException;
 use Illuminate\Support\Collection;
 use PHPUnit\Framework\TestCase;
@@ -314,17 +315,14 @@ class NestedDtoTest extends TestCase
         }
     }
 
-    public function test_array_typed_array_of_fields_are_rejected(): void
+    public function test_array_typed_array_of_fields_are_rejected_as_configuration_errors(): void
     {
-        try {
-            InvalidArrayOfArrayDto::fromArray([
-                'people' => [],
-            ]);
+        $this->expectException(InspectionException::class);
+        $this->expectExceptionMessage("Field 'people' on ".InvalidArrayOfArrayDto::class.' must be typed as '.Collection::class.' when using ArrayOf');
 
-            $this->fail('Validation should have failed');
-        } catch (ValidationException $e) {
-            $this->assertArrayHasKey('people', $e->errors);
-        }
+        InvalidArrayOfArrayDto::fromArray([
+            'people' => [],
+        ]);
     }
 }
 

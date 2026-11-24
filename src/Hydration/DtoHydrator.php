@@ -22,8 +22,6 @@ use DateTimeImmutable;
 use DateTimeInterface;
 use DateTimeZone;
 use Illuminate\Support\Collection;
-use ReflectionEnum;
-use ReflectionException;
 use ReflectionNamedType;
 use Throwable;
 use TypeError;
@@ -62,14 +60,7 @@ final class DtoHydrator
 
             $arrayItemClass = $inspector->getArrayItemClassForKey($name);
             if ($arrayItemClass !== null) {
-                $type = $inspector->getTypeForKey($name);
-                if (! self::isCollectionType($type)) {
-                    throw new ValidationException([
-                        $name => ["The $name field must be typed as ".Collection::class.' when using ArrayOf.'],
-                    ]);
-                }
-
-                if ($attributes[$name] === null && $type instanceof ReflectionNamedType && $type->allowsNull()) {
+                if ($attributes[$name] === null && ($inspector->getTypeForKey($name)?->allowsNull() ?? false)) {
                     continue;
                 }
 
@@ -140,20 +131,11 @@ final class DtoHydrator
     }
 
     /**
-     * @phpstan-assert-if-true class-string $class
+     * @phpstan-assert-if-true =class-string $class
      */
     private static function isDtoClass(string $class): bool
     {
         return DtoClass::isDto($class);
-    }
-
-    private static function isCollectionType(mixed $type): bool
-    {
-        if (! ($type instanceof ReflectionNamedType) || $type->isBuiltin()) {
-            return false;
-        }
-
-        return is_a($type->getName(), Collection::class, true);
     }
 
     /**
@@ -182,18 +164,10 @@ final class DtoHydrator
                 ->withMessages(self::dtoMessages($class))
                 ->withMessages($customMessages);
 
-            $dto = ContainerHelper::makeInstance($class, $validator->validate());
+            return ContainerHelper::makeInstance($class, $validator->validate());
         } catch (ValidationException $e) {
             throw new ValidationException(self::prefixErrors($e->errors, $path));
         }
-
-        if (! is_object($dto)) {
-            throw new ValidationException([
-                $path => ["The $path field has an invalid type."],
-            ]);
-        }
-
-        return $dto;
     }
 
     /**
@@ -244,12 +218,6 @@ final class DtoHydrator
         if (! array_is_list($value)) {
             throw new ValidationException([
                 $path => ["The $path field must be a list of DTO records."],
-            ]);
-        }
-
-        if (! self::isDtoClass($class)) {
-            throw new ValidationException([
-                $path => ["The $path field has an invalid DTO type."],
             ]);
         }
 
@@ -327,14 +295,8 @@ final class DtoHydrator
         if ($property !== null) {
             $attributes = $property->getAttributes(DateFormat::class);
             if ($attributes !== []) {
-                try {
-                    /** @var DateFormat $dateFormat */
-                    $dateFormat = $attributes[0]->newInstance();
-                } catch (Throwable $e) {
-                    throw new InspectionException("Failed to inspect date format attribute for field '$name'", 0, $e);
-                }
-
-                return $dateFormat;
+                // DtoSchemaCompiler has already instantiated and validated it.
+                return $attributes[0]->newInstance();
             }
         }
 
@@ -359,15 +321,9 @@ final class DtoHydrator
         ?DateFormat $dateFormat = null
     ): mixed {
         // Handle backed enums
-        if (enum_exists($type)) {
+        if (enum_exists($type) && is_a($type, BackedEnum::class, true) && (is_string($value) || is_int($value))) {
             try {
-                $reflectionEnum = new ReflectionEnum($type);
-                if ($reflectionEnum->isBacked() && (is_string($value) || is_int($value))) {
-                    /** @var class-string<BackedEnum> $type */
-                    return $type::tryFrom($value) ?? $value;
-                }
-            } catch (ReflectionException $e) {
-                throw new InspectionException("Failed to cast value for enum '$type'", 0, $e);
+                return $type::tryFrom($value) ?? $value;
             } catch (TypeError) {
                 return $value;
             }
@@ -439,17 +395,14 @@ final class DtoHydrator
     }
 
     /**
-     * Without `!` or `|`, PHP fills fields missing from the format with the
+     * Without a leading `!`, PHP fills fields missing from the format with the
      * current time, so `d/m/Y` would hydrate with the wall-clock time of the
      * request. Reset unparsed fields the same way Laravel's `date_format`
-     * rule does.
+     * rule does. A leading `!` is always safe to add, even when the format
+     * already contains `!`, `|`, or an escaped literal of either.
      */
     private static function deterministicDateFormat(string $format): string
     {
-        if (str_contains($format, '!') || str_contains($format, '|')) {
-            return $format;
-        }
-
         return '!'.$format;
     }
 }

@@ -83,10 +83,6 @@ final class DtoRuleBuilder
         $acceptedKeys = $inspector->getAcceptedKeys();
 
         foreach ($customRules as $field => $fieldRules) {
-            if (! is_string($field)) {
-                throw new InspectionException('Validation rule field names must be strings.');
-            }
-
             $rootField = explode('.', $field, 2)[0];
             // Check if the field exists in the DTO before adding rules for it
             if (! in_array($rootField, $acceptedKeys, true)) {
@@ -157,35 +153,6 @@ final class DtoRuleBuilder
         }
 
         return $result;
-    }
-
-    public static function stringValueForLaravelStringableRule(object $rule): ?string
-    {
-        if ($rule instanceof Dimensions) {
-            return $rule->__toString();
-        }
-
-        if ($rule instanceof ExcludeIf) {
-            return $rule->__toString();
-        }
-
-        if ($rule instanceof In) {
-            return $rule->__toString();
-        }
-
-        if ($rule instanceof NotIn) {
-            return $rule->__toString();
-        }
-
-        if ($rule instanceof ProhibitedIf) {
-            return $rule->__toString();
-        }
-
-        if ($rule instanceof RequiredIf) {
-            return $rule->__toString();
-        }
-
-        return null;
     }
 
     /**

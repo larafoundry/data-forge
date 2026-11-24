@@ -40,8 +40,13 @@ Before opening or updating a pull request, run:
 composer audit
 composer phpstan
 composer test
+composer coverage
 composer pint:test
 ```
+
+`composer coverage` needs the PCOV extension. It fails unless every line and
+method in `src/` is covered. Do not exclude code from coverage. Remove code
+that cannot run, and test the code that can.
 
 Use `composer pint` to fix formatting. Add focused tests for behavior changes
 and update public documentation when a contract or example changes.

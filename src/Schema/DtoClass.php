@@ -13,19 +13,18 @@ final class DtoClass
     private static array $unknownInputKeyRejectionCache = [];
 
     /**
-     * @phpstan-assert-if-true class-string $class
+     * @phpstan-assert-if-true =class-string $class
      */
     public static function isDto(string $class): bool
     {
         return class_exists($class) && self::usesTrait($class, AsDto::class);
     }
 
+    /**
+     * @param  class-string  $class
+     */
     public static function rejectsUnknownInputKeys(string $class): bool
     {
-        if (! class_exists($class)) {
-            return false;
-        }
-
         return self::$unknownInputKeyRejectionCache[$class]
             ??= self::usesTraitOnClass($class, AsStrictInputDto::class);
     }

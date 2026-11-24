@@ -435,7 +435,8 @@ Package exceptions live under `Axiom\DataForge\Exceptions`:
   It extends `ValidationException`, so existing validation handlers catch it
   too. Its `$errors` keep the exact raw input path.
 - `InspectionException`: the DTO class itself is misconfigured (for example an
-  unsupported rule value or a bad `#[DateFormat]` timezone)
+  unsupported rule value, a bad `#[DateFormat]` timezone, or `#[ArrayOf]` on a
+  field that is not a `Collection` of DTOs)
 - `InstantiationException`: the DTO could not be constructed from validated
   data
 

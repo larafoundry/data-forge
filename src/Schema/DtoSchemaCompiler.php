@@ -10,6 +10,8 @@ use Axiom\DataForge\Attributes\MapKey;
 use Axiom\DataForge\Exceptions\InspectionException;
 use DateTimeZone;
 use Exception;
+use Illuminate\Support\Collection;
+use ReflectionAttribute;
 use ReflectionClass;
 use ReflectionNamedType;
 use ReflectionParameter;
@@ -122,16 +124,7 @@ final class DtoSchemaCompiler
             }
 
             foreach ($field->property->getAttributes(DateFormat::class) as $attribute) {
-                try {
-                    /** @var DateFormat $dateFormat */
-                    $dateFormat = $attribute->newInstance();
-                } catch (Throwable $e) {
-                    throw new InspectionException(
-                        "Failed to inspect date format attribute for field '{$field->name}' on $class",
-                        0,
-                        $e
-                    );
-                }
+                $dateFormat = self::attributeInstance($attribute, $class, $field->name);
 
                 self::assertValidDateFormatTimezone($class, $field->name, $dateFormat);
             }
@@ -178,13 +171,13 @@ final class DtoSchemaCompiler
 
         return new FieldSpec(
             $name,
-            self::mappedKey($property, $name),
+            self::mappedKey($reflection->getName(), $property, $name),
             new TypeSpec($type),
             ! $hasDefault && ! $nullable,
             $nullable,
             $hasDefault,
             $defaultValue,
-            self::arrayItemClass($property, $parameter),
+            self::arrayItemClass($reflection->getName(), $name, $type, $property, $parameter),
             $property,
             $parameter,
         );
@@ -209,30 +202,34 @@ final class DtoSchemaCompiler
         return $property;
     }
 
-    private static function mappedKey(?ReflectionProperty $property, string $name): string
+    /**
+     * @param  class-string  $class
+     *
+     * @throws InspectionException
+     */
+    private static function mappedKey(string $class, ?ReflectionProperty $property, string $name): string
     {
-        if ($property === null) {
-            return $name;
-        }
-
-        $attributes = $property->getAttributes(MapKey::class);
+        $attributes = $property?->getAttributes(MapKey::class) ?? [];
         if ($attributes === []) {
             return $name;
         }
 
-        /** @var MapKey $mapKey */
-        $mapKey = $attributes[0]->newInstance();
-
-        return $mapKey->key;
+        return self::attributeInstance($attributes[0], $class, $name)->key;
     }
 
     /**
+     * @param  class-string  $class
      * @return class-string|null
      *
      * @throws InspectionException
      */
-    private static function arrayItemClass(?ReflectionProperty $property, ?ReflectionParameter $parameter): ?string
-    {
+    private static function arrayItemClass(
+        string $class,
+        string $name,
+        ?ReflectionType $type,
+        ?ReflectionProperty $property,
+        ?ReflectionParameter $parameter
+    ): ?string {
         $attributes = $property?->getAttributes(ArrayOf::class) ?? [];
         if ($attributes === [] && $parameter !== null) {
             $attributes = $parameter->getAttributes(ArrayOf::class);
@@ -242,14 +239,43 @@ final class DtoSchemaCompiler
             return null;
         }
 
-        /** @var ArrayOf $arrayOf */
-        $arrayOf = $attributes[0]->newInstance();
+        $itemClass = self::attributeInstance($attributes[0], $class, $name)->class;
 
-        if (! class_exists($arrayOf->class)) {
-            throw new InspectionException("Array item class '{$arrayOf->class}' does not exist");
+        if (! class_exists($itemClass)) {
+            throw new InspectionException("Array item class '$itemClass' does not exist");
         }
 
-        return $arrayOf->class;
+        if (! DtoClass::isDto($itemClass)) {
+            throw new InspectionException("Array item class '$itemClass' for field '$name' on $class must be a DTO");
+        }
+
+        if (! ($type instanceof ReflectionNamedType) || ! is_a($type->getName(), Collection::class, true)) {
+            throw new InspectionException("Field '$name' on $class must be typed as ".Collection::class.' when using ArrayOf');
+        }
+
+        return $itemClass;
+    }
+
+    /**
+     * @template A of object
+     *
+     * @param  ReflectionAttribute<A>  $attribute
+     * @param  class-string  $class
+     * @return A
+     *
+     * @throws InspectionException
+     */
+    private static function attributeInstance(ReflectionAttribute $attribute, string $class, string $name): object
+    {
+        try {
+            return $attribute->newInstance();
+        } catch (Throwable $e) {
+            throw new InspectionException(
+                "Failed to inspect attribute {$attribute->getName()} for field '$name' on $class",
+                0,
+                $e
+            );
+        }
     }
 
     private static function hasDefault(?ReflectionProperty $property, ?ReflectionParameter $parameter): bool
@@ -261,33 +287,20 @@ final class DtoSchemaCompiler
         return $property?->hasDefaultValue() ?? false;
     }
 
+    /**
+     * Only called when hasDefault() is true.
+     */
     private static function defaultValue(?ReflectionProperty $property, ?ReflectionParameter $parameter): mixed
     {
-        if ($parameter !== null && $parameter->isDefaultValueAvailable()) {
+        if ($parameter !== null) {
             return $parameter->getDefaultValue();
         }
 
-        if ($property !== null && $property->hasDefaultValue()) {
-            return $property->getDefaultValue();
-        }
-
-        return null;
+        return $property?->getDefaultValue();
     }
 
     private static function typeAllowsNull(?ReflectionType $type): bool
     {
-        if ($type === null) {
-            return false;
-        }
-
-        if ($type->allowsNull()) {
-            return true;
-        }
-
-        if (! ($type instanceof ReflectionNamedType)) {
-            return false;
-        }
-
-        return $type->getName() === 'null';
+        return $type?->allowsNull() ?? false;
     }
 }

@@ -11,6 +11,7 @@ use Axiom\DataForge\Concerns\AsStrictInputDto;
 use Axiom\DataForge\Exceptions\UnknownInputKeyException;
 use Axiom\DataForge\Input\UnknownInputKeyValidator;
 use Axiom\DataForge\Schema\DtoInspector;
+use Illuminate\Support\Collection;
 use PHPUnit\Framework\TestCase;
 
 final class UnknownInputKeyValidatorTest extends TestCase
@@ -80,10 +81,10 @@ final class FlexibleParentWithStrictCollectionFixtureDto
     use AsDto;
 
     /**
-     * @param  array<int, StrictCollectionChildFixtureDto>  $children
+     * @param  Collection<int, StrictCollectionChildFixtureDto>  $children
      */
     public function __construct(
         #[ArrayOf(StrictCollectionChildFixtureDto::class)]
-        public readonly array $children,
+        public readonly Collection $children,
     ) {}
 }
