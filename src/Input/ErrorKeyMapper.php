@@ -5,7 +5,8 @@ declare(strict_types=1);
 namespace Axiom\DataForge\Input;
 
 use Axiom\DataForge\Schema\DtoClass;
-use Axiom\DataForge\Schema\DtoInspector;
+use Axiom\DataForge\Schema\DtoSchema;
+use Axiom\DataForge\Schema\DtoSchemaCompiler;
 use ReflectionNamedType;
 
 /**
@@ -22,27 +23,27 @@ use ReflectionNamedType;
 final class ErrorKeyMapper
 {
     /**
-     * @param  DtoInspector<object>  $inspector  the root DTO inspector
+     * @param  DtoSchema<object>  $schema  the root DTO schema
      * @param  array<string,array<int,string>>  $errors  canonical-keyed error bag
      * @return array<string,array<int,string>>
      */
-    public static function toInputKeys(DtoInspector $inspector, array $errors): array
+    public static function toInputKeys(DtoSchema $schema, array $errors): array
     {
         $mapped = [];
         foreach ($errors as $key => $messages) {
-            $mapped[self::translatePath($inspector, (string) $key)] = $messages;
+            $mapped[self::translatePath($schema, (string) $key)] = $messages;
         }
 
         return $mapped;
     }
 
     /**
-     * @param  DtoInspector<object>  $inspector
+     * @param  DtoSchema<object>  $schema
      */
-    private static function translatePath(DtoInspector $inspector, string $path): string
+    private static function translatePath(DtoSchema $schema, string $path): string
     {
         $segments = explode('.', $path);
-        $current = $inspector;
+        $current = $schema;
         $out = [];
 
         foreach ($segments as $segment) {
@@ -52,7 +53,7 @@ final class ErrorKeyMapper
                 continue;
             }
 
-            $out[] = $current->getMappedKey($segment);
+            $out[] = $current->inputKey($segment);
             $current = self::descend($current, $segment);
         }
 
@@ -60,22 +61,22 @@ final class ErrorKeyMapper
     }
 
     /**
-     * Resolve the inspector for the DTO reached by following a property key,
+     * Resolve the schema for the DTO reached by following a property key,
      * whether it is a nested DTO or a typed collection of DTOs.
      *
-     * @param  DtoInspector<object>  $inspector
-     * @return DtoInspector<object>|null
+     * @param  DtoSchema<object>  $schema
+     * @return DtoSchema<object>|null
      */
-    private static function descend(DtoInspector $inspector, string $propertyName): ?DtoInspector
+    private static function descend(DtoSchema $schema, string $propertyName): ?DtoSchema
     {
-        $itemClass = $inspector->getArrayItemClassForKey($propertyName);
+        $itemClass = $schema->field($propertyName)?->arrayItemClass;
         if ($itemClass !== null) {
-            return new DtoInspector($itemClass);
+            return DtoSchemaCompiler::compile($itemClass);
         }
 
-        $type = $inspector->getTypeForKey($propertyName);
+        $type = $schema->field($propertyName)?->type->reflectionType;
         if ($type instanceof ReflectionNamedType && ! $type->isBuiltin() && DtoClass::isDto($type->getName())) {
-            return new DtoInspector($type->getName());
+            return DtoSchemaCompiler::compile($type->getName());
         }
 
         return null;

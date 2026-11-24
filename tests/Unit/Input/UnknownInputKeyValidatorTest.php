@@ -9,7 +9,7 @@ use Axiom\DataForge\Concerns\AsDto;
 use Axiom\DataForge\Concerns\AsStrictInputDto;
 use Axiom\DataForge\Exceptions\UnknownInputKeyException;
 use Axiom\DataForge\Input\UnknownInputKeyValidator;
-use Axiom\DataForge\Schema\DtoInspector;
+use Axiom\DataForge\Schema\DtoSchemaCompiler;
 use Illuminate\Support\Collection;
 use PHPUnit\Framework\TestCase;
 
@@ -19,7 +19,7 @@ final class UnknownInputKeyValidatorTest extends TestCase
     {
         try {
             UnknownInputKeyValidator::assertNoUnknownKeys(
-                new DtoInspector(StrictMappedInputFixtureDto::class),
+                DtoSchemaCompiler::compile(StrictMappedInputFixtureDto::class),
                 [
                     'first_name' => 'Ada',
                     'firstName' => 'unknown canonical key',
@@ -37,7 +37,7 @@ final class UnknownInputKeyValidatorTest extends TestCase
     {
         try {
             UnknownInputKeyValidator::assertNoUnknownKeys(
-                new DtoInspector(FlexibleParentWithStrictCollectionFixtureDto::class),
+                DtoSchemaCompiler::compile(FlexibleParentWithStrictCollectionFixtureDto::class),
                 [
                     'children' => [
                         [

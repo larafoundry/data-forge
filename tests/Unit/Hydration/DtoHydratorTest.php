@@ -8,7 +8,7 @@ use Axiom\DataForge\Attributes\DateFormat;
 use Axiom\DataForge\Concerns\AsDto;
 use Axiom\DataForge\Exceptions\ValidationException;
 use Axiom\DataForge\Hydration\DtoHydrator;
-use Axiom\DataForge\Schema\DtoInspector;
+use Axiom\DataForge\Schema\DtoSchemaCompiler;
 use Carbon\CarbonImmutable;
 use DateTime;
 use DateTimeImmutable;
@@ -21,7 +21,7 @@ final class DtoHydratorTest extends TestCase
     public function test_hydrate_casts_backed_enums_and_date_like_values(): void
     {
         $hydrated = DtoHydrator::hydrate(
-            new DtoInspector(HydratorCastingFixtureDto::class),
+            DtoSchemaCompiler::compile(HydratorCastingFixtureDto::class),
             [
                 'createdAt' => '2024-01-02 03:04:05',
                 'status' => 'draft',
@@ -36,7 +36,7 @@ final class DtoHydratorTest extends TestCase
     public function test_hydrate_uses_date_format_attributes(): void
     {
         $hydrated = DtoHydrator::hydrate(
-            new DtoInspector(HydratorFormattedDateFixtureDto::class),
+            DtoSchemaCompiler::compile(HydratorFormattedDateFixtureDto::class),
             [
                 'date' => '31/12/2024',
             ]
@@ -49,7 +49,7 @@ final class DtoHydratorTest extends TestCase
     public function test_hydrate_date_format_resets_fields_missing_from_the_format(): void
     {
         $hydrated = DtoHydrator::hydrate(
-            new DtoInspector(HydratorDateOnlyFormatFixtureDto::class),
+            DtoSchemaCompiler::compile(HydratorDateOnlyFormatFixtureDto::class),
             [
                 'carbon' => '31/12/2024',
                 'immutable' => '31/12/2024',
@@ -70,7 +70,7 @@ final class DtoHydratorTest extends TestCase
     public function test_hydrate_builds_nested_dto_collections(): void
     {
         $hydrated = DtoHydrator::hydrate(
-            new DtoInspector(HydratorCollectionFixtureDto::class),
+            DtoSchemaCompiler::compile(HydratorCollectionFixtureDto::class),
             [
                 'children' => [
                     ['name' => 'Ada'],
@@ -90,7 +90,7 @@ final class DtoHydratorTest extends TestCase
         $this->expectException(ValidationException::class);
 
         DtoHydrator::hydrate(
-            new DtoInspector(HydratorCollectionFixtureDto::class),
+            DtoSchemaCompiler::compile(HydratorCollectionFixtureDto::class),
             [
                 'children' => [
                     'first' => ['name' => 'Ada'],

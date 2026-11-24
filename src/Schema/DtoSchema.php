@@ -69,4 +69,12 @@ final class DtoSchema
     {
         return $this->fields[$name] ?? null;
     }
+
+    /**
+     * The input key of a field: its #[MapKey] name, or the field name itself.
+     */
+    public function inputKey(string $name): string
+    {
+        return $this->fields[$name]->inputKey ?? $name;
+    }
 }

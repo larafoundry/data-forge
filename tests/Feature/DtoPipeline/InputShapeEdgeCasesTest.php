@@ -8,7 +8,7 @@ use Axiom\DataForge\Attributes\DateFormat;
 use Axiom\DataForge\Concerns\AsDto;
 use Axiom\DataForge\Concerns\AsStrictInputDto;
 use Axiom\DataForge\Exceptions\ValidationException;
-use Axiom\DataForge\Schema\DtoInspector;
+use Axiom\DataForge\Schema\DtoSchemaCompiler;
 use Carbon\CarbonImmutable;
 use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
@@ -82,11 +82,11 @@ final class InputShapeEdgeCasesTest extends TestCase
 
     public function test_static_property_does_not_shadow_a_constructor_parameter(): void
     {
-        $inspector = new DtoInspector(EdgeStaticShadowFixtureDto::class);
+        $schema = DtoSchemaCompiler::compile(EdgeStaticShadowFixtureDto::class);
         $dto = EdgeStaticShadowFixtureDto::fromArray(['name' => 'Ada']);
 
-        $this->assertSame(['name'], $inspector->getAcceptedKeys());
-        $this->assertNull($inspector->getReflectionProperty('name'));
+        $this->assertSame(['name'], $schema->acceptedKeys());
+        $this->assertNull($schema->field('name')?->property);
         $this->assertSame('Ada', $dto->stored());
     }
 

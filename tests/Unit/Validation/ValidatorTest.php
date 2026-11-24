@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Validation;
 
 use Axiom\DataForge\Exceptions\ValidationException;
-use Axiom\DataForge\Schema\DtoInspector;
+use Axiom\DataForge\Schema\DtoSchemaCompiler;
 use Axiom\DataForge\Validation\Validator;
 use Tests\TestCase;
 use Tests\Unit\Validation\Objects\TestDto;
@@ -14,8 +14,8 @@ final class ValidatorTest extends TestCase
 {
     public function test_validator_requires_required_fields(): void
     {
-        $inspector = new DtoInspector(TestDto::class);
-        $validator = new Validator($inspector, []);
+        $schema = DtoSchemaCompiler::compile(TestDto::class);
+        $validator = Validator::from($schema, []);
 
         try {
             $validator->validate();
@@ -30,8 +30,8 @@ final class ValidatorTest extends TestCase
 
     public function test_validator_uses_default_laravel_validation_messages(): void
     {
-        $inspector = new DtoInspector(TestDto::class);
-        $validator = new Validator($inspector, []);
+        $schema = DtoSchemaCompiler::compile(TestDto::class);
+        $validator = Validator::from($schema, []);
 
         try {
             $validator->validate();
@@ -44,9 +44,9 @@ final class ValidatorTest extends TestCase
 
     public function test_validator_validates_field_types(): void
     {
-        $inspector = new DtoInspector(TestDto::class);
+        $schema = DtoSchemaCompiler::compile(TestDto::class);
 
-        $validValidator = new Validator($inspector, [
+        $validValidator = Validator::from($schema, [
             'name' => 'John',
             'age' => 30,
             'email' => 'john@example.com',
@@ -58,7 +58,7 @@ final class ValidatorTest extends TestCase
         $this->assertArrayHasKey('age', $validData);
         $this->assertArrayHasKey('email', $validData);
 
-        $invalidValidator = new Validator($inspector, [
+        $invalidValidator = Validator::from($schema, [
             'name' => 123,
             'age' => 'thirty',
         ]);
@@ -74,9 +74,9 @@ final class ValidatorTest extends TestCase
 
     public function test_validator_applies_min_rule_correctly(): void
     {
-        $inspector = new DtoInspector(TestDto::class);
+        $schema = DtoSchemaCompiler::compile(TestDto::class);
 
-        $validator = new Validator($inspector, [
+        $validator = Validator::from($schema, [
             'name' => 'John',
             'age' => 15,
         ]);
@@ -92,7 +92,7 @@ final class ValidatorTest extends TestCase
             $this->assertArrayHasKey('age', $e->errors);
         }
 
-        $validator = new Validator($inspector, [
+        $validator = Validator::from($schema, [
             'name' => 'Jo',
             'age' => 25,
         ]);
@@ -111,9 +111,9 @@ final class ValidatorTest extends TestCase
 
     public function test_validator_applies_max_rule_correctly(): void
     {
-        $inspector = new DtoInspector(TestDto::class);
+        $schema = DtoSchemaCompiler::compile(TestDto::class);
 
-        $validator = new Validator($inspector, [
+        $validator = Validator::from($schema, [
             'name' => 'John',
             'age' => 65,
         ]);
@@ -129,7 +129,7 @@ final class ValidatorTest extends TestCase
             $this->assertArrayHasKey('age', $e->errors);
         }
 
-        $validator = new Validator($inspector, [
+        $validator = Validator::from($schema, [
             'name' => 'John Doe Smith',
             'age' => 25,
         ]);
@@ -148,9 +148,9 @@ final class ValidatorTest extends TestCase
 
     public function test_validator_applies_in_rule_correctly(): void
     {
-        $inspector = new DtoInspector(TestDto::class);
+        $schema = DtoSchemaCompiler::compile(TestDto::class);
 
-        $validValidator = new Validator($inspector, [
+        $validValidator = Validator::from($schema, [
             'name' => 'John',
             'age' => 30,
         ]);
@@ -163,7 +163,7 @@ final class ValidatorTest extends TestCase
         $this->assertArrayHasKey('name', $validData);
         $this->assertSame('John', $validData['name']);
 
-        $invalidValidator = new Validator($inspector, [
+        $invalidValidator = Validator::from($schema, [
             'name' => 'Alice',
             'age' => 30,
         ]);
@@ -182,9 +182,9 @@ final class ValidatorTest extends TestCase
 
     public function test_validator_applies_regex_rule_correctly(): void
     {
-        $inspector = new DtoInspector(TestDto::class);
+        $schema = DtoSchemaCompiler::compile(TestDto::class);
 
-        $validValidator = new Validator($inspector, [
+        $validValidator = Validator::from($schema, [
             'name' => 'John123',
             'age' => 30,
         ]);
@@ -197,7 +197,7 @@ final class ValidatorTest extends TestCase
         $this->assertArrayHasKey('name', $validData);
         $this->assertSame('John123', $validData['name']);
 
-        $invalidValidator = new Validator($inspector, [
+        $invalidValidator = Validator::from($schema, [
             'name' => 'John@123',
             'age' => 30,
         ]);
@@ -216,9 +216,9 @@ final class ValidatorTest extends TestCase
 
     public function test_validator_applies_email_rule_correctly(): void
     {
-        $inspector = new DtoInspector(TestDto::class);
+        $schema = DtoSchemaCompiler::compile(TestDto::class);
 
-        $validValidator = new Validator($inspector, [
+        $validValidator = Validator::from($schema, [
             'name' => 'John',
             'age' => 30,
             'email' => 'john@example.com',
@@ -232,7 +232,7 @@ final class ValidatorTest extends TestCase
         $this->assertArrayHasKey('email', $validData);
         $this->assertSame('john@example.com', $validData['email']);
 
-        $invalidValidator = new Validator($inspector, [
+        $invalidValidator = Validator::from($schema, [
             'name' => 'John',
             'age' => 30,
             'email' => 'not-an-email',
@@ -252,9 +252,9 @@ final class ValidatorTest extends TestCase
 
     public function test_validator_applies_url_rule_correctly(): void
     {
-        $inspector = new DtoInspector(TestDto::class);
+        $schema = DtoSchemaCompiler::compile(TestDto::class);
 
-        $validValidator = new Validator($inspector, [
+        $validValidator = Validator::from($schema, [
             'name' => 'John',
             'age' => 30,
             'url' => 'https://example.com',
@@ -268,7 +268,7 @@ final class ValidatorTest extends TestCase
         $this->assertArrayHasKey('url', $validData);
         $this->assertSame('https://example.com', $validData['url']);
 
-        $invalidValidator = new Validator($inspector, [
+        $invalidValidator = Validator::from($schema, [
             'name' => 'John',
             'age' => 30,
             'url' => 'not-a-url',
@@ -288,8 +288,8 @@ final class ValidatorTest extends TestCase
 
     public function test_validator_uses_custom_error_messages(): void
     {
-        $inspector = new DtoInspector(TestDto::class);
-        $validator = new Validator($inspector, [
+        $schema = DtoSchemaCompiler::compile(TestDto::class);
+        $validator = Validator::from($schema, [
             'age' => 15,
         ]);
 
@@ -304,44 +304,5 @@ final class ValidatorTest extends TestCase
         } catch (ValidationException $e) {
             $this->assertSame($customMessage, $e->errors['name'][0]);
         }
-    }
-
-    public function test_validate_safe_returns_data_when_validation_passes(): void
-    {
-        $inspector = new DtoInspector(TestDto::class);
-        $validator = new Validator($inspector, [
-            'name' => 'John',
-            'age' => 30,
-        ]);
-
-        $data = $validator->validateSafe();
-
-        $this->assertIsArray($data);
-        $this->assertArrayHasKey('name', $data);
-        $this->assertArrayHasKey('age', $data);
-    }
-
-    public function test_validate_safe_returns_false_when_validation_fails(): void
-    {
-        $inspector = new DtoInspector(TestDto::class);
-        $validator = new Validator($inspector, []);
-
-        $result = $validator->validateSafe();
-
-        $this->assertFalse($result);
-    }
-
-    public function test_get_errors_returns_validation_errors(): void
-    {
-        $inspector = new DtoInspector(TestDto::class);
-        $validator = new Validator($inspector, []);
-
-        $result = $validator->validateSafe();
-        $this->assertFalse($result);
-
-        $errors = $validator->getErrors();
-        $this->assertIsArray($errors);
-        $this->assertArrayHasKey('name', $errors);
-        $this->assertArrayHasKey('age', $errors);
     }
 }

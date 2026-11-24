@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Validation;
 
 use Axiom\DataForge\Exceptions\InspectionException;
-use Axiom\DataForge\Schema\DtoInspector;
+use Axiom\DataForge\Schema\DtoSchemaCompiler;
 use Axiom\DataForge\Validation\DtoRuleBuilder;
 use Closure;
 use Tests\TestCase;
@@ -44,8 +44,8 @@ final class DtoRuleBuilderTest extends TestCase
 
     public function test_build_creates_required_rules(): void
     {
-        $inspector = new DtoInspector(TestDto::class);
-        $rules = DtoRuleBuilder::build($inspector, [], []);
+        $schema = DtoSchemaCompiler::compile(TestDto::class);
+        $rules = DtoRuleBuilder::build($schema, [], []);
 
         $this->assertIsArray($rules);
         $this->assertArrayHasKey('name', $rules);
@@ -56,8 +56,8 @@ final class DtoRuleBuilderTest extends TestCase
 
     public function test_build_handles_optional_properties(): void
     {
-        $inspector = new DtoInspector(TestDto::class);
-        $rules = DtoRuleBuilder::build($inspector, [], []);
+        $schema = DtoSchemaCompiler::compile(TestDto::class);
+        $rules = DtoRuleBuilder::build($schema, [], []);
 
         $this->assertIsArray($rules);
         $this->assertArrayHasKey('email', $rules);
@@ -68,13 +68,13 @@ final class DtoRuleBuilderTest extends TestCase
 
     public function test_build_merges_custom_rules(): void
     {
-        $inspector = new DtoInspector(TestDto::class);
+        $schema = DtoSchemaCompiler::compile(TestDto::class);
         $customRules = [
             'name' => ['min:3', 'max:50'],
             'email' => ['email'],
         ];
 
-        $rules = DtoRuleBuilder::build($inspector, $customRules, []);
+        $rules = DtoRuleBuilder::build($schema, $customRules, []);
 
         $this->assertIsArray($rules);
         $this->assertContains('required', $rules['name']);
@@ -85,14 +85,14 @@ final class DtoRuleBuilderTest extends TestCase
 
     public function test_build_adds_nullable_rule_for_unknown_payload_keys(): void
     {
-        $inspector = new DtoInspector(TestDto::class);
+        $schema = DtoSchemaCompiler::compile(TestDto::class);
         $payload = [
             'name' => 'John',
             'age' => 30,
             'unknown_field' => 'some value',
         ];
 
-        $rules = DtoRuleBuilder::build($inspector, [], $payload);
+        $rules = DtoRuleBuilder::build($schema, [], $payload);
 
         $this->assertIsArray($rules);
         $this->assertArrayHasKey('unknown_field', $rules);
@@ -101,8 +101,8 @@ final class DtoRuleBuilderTest extends TestCase
 
     public function test_build_adds_type_validation(): void
     {
-        $inspector = new DtoInspector(TestDto::class);
-        $rules = DtoRuleBuilder::build($inspector, [], []);
+        $schema = DtoSchemaCompiler::compile(TestDto::class);
+        $rules = DtoRuleBuilder::build($schema, [], []);
 
         $this->assertIsArray($rules);
         $this->assertGreaterThanOrEqual(1, count($rules['name']));

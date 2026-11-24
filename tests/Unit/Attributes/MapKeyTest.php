@@ -7,7 +7,7 @@ namespace Tests\Unit\Attributes;
 use Axiom\DataForge\Exceptions\InstantiationException;
 use Axiom\DataForge\Exceptions\ValidationException;
 use Axiom\DataForge\Hydration\ContainerHelper;
-use Axiom\DataForge\Schema\DtoInspector;
+use Axiom\DataForge\Schema\DtoSchemaCompiler;
 use Axiom\DataForge\Validation\Validator;
 use PHPUnit\Framework\TestCase;
 use Tests\Unit\Attributes\Objects\DtoWithMapKey;
@@ -72,8 +72,8 @@ class MapKeyTest extends TestCase
             'age' => 30,
         ];
 
-        $inspector = new DtoInspector(DtoWithMapKey::class);
-        $validator = Validator::from($inspector, $data)
+        $schema = DtoSchemaCompiler::compile(DtoWithMapKey::class);
+        $validator = Validator::from($schema, $data)
             ->withRules([
                 'firstName' => 'required|min:3',
                 'lastName' => 'required|min:2',
@@ -98,8 +98,8 @@ class MapKeyTest extends TestCase
             'age' => 17, // Too young
         ];
 
-        $inspector = new DtoInspector(DtoWithMapKey::class);
-        $validator = Validator::from($inspector, $data)
+        $schema = DtoSchemaCompiler::compile(DtoWithMapKey::class);
+        $validator = Validator::from($schema, $data)
             ->withRules([
                 'firstName' => 'required|min:3',
                 'lastName' => 'required|min:2',
@@ -121,7 +121,7 @@ class MapKeyTest extends TestCase
         }
     }
 
-    public function test_get_errors_uses_input_keys_after_validate_safe(): void
+    public function test_validation_errors_use_input_keys(): void
     {
         $data = [
             'first_name' => 'Jo', // Too short
@@ -130,8 +130,8 @@ class MapKeyTest extends TestCase
             'age' => 17, // Too young
         ];
 
-        $inspector = new DtoInspector(DtoWithMapKey::class);
-        $validator = Validator::from($inspector, $data)
+        $schema = DtoSchemaCompiler::compile(DtoWithMapKey::class);
+        $validator = Validator::from($schema, $data)
             ->withRules([
                 'firstName' => 'required|min:3',
                 'lastName' => 'required|min:2',
@@ -139,11 +139,14 @@ class MapKeyTest extends TestCase
                 'age' => 'required|integer|min:18',
             ]);
 
-        $this->assertFalse($validator->validateSafe());
+        try {
+            $validator->validate();
+            $this->fail('Validation should have failed');
+        } catch (ValidationException $e) {
+            $errors = $e->errors;
+        }
 
-        // getErrors() must agree with the namespace a caught exception would use:
-        // the external input keys, not the canonical property names.
-        $errors = $validator->getErrors();
+        // Errors use the external input keys, not the canonical property names.
         $this->assertArrayHasKey('first_name', $errors);
         $this->assertArrayHasKey('last_name', $errors);
         $this->assertArrayHasKey('email_address', $errors);
@@ -161,8 +164,8 @@ class MapKeyTest extends TestCase
             'age' => 30,
         ];
 
-        $inspector = new DtoInspector(DtoWithMapKey::class);
-        $validator = Validator::from($inspector, $data)
+        $schema = DtoSchemaCompiler::compile(DtoWithMapKey::class);
+        $validator = Validator::from($schema, $data)
             ->withRules([
                 'firstName' => 'required|min:3',
                 'lastName' => 'required|min:2',
@@ -185,8 +188,8 @@ class MapKeyTest extends TestCase
             'age' => 30,
         ];
 
-        $inspector = new DtoInspector(DtoWithMapKey::class);
-        $validator = Validator::from($inspector, $data, rejectsUnknownInputKeys: true)
+        $schema = DtoSchemaCompiler::compile(DtoWithMapKey::class);
+        $validator = Validator::from($schema, $data, rejectsUnknownInputKeys: true)
             ->withRules([
                 'firstName' => 'required|min:3',
                 'lastName' => 'required|min:2',
@@ -218,10 +221,10 @@ class MapKeyTest extends TestCase
         }
     }
 
-    public function test_inspector_returns_correct_key_map(): void
+    public function test_schema_returns_correct_key_map(): void
     {
-        $inspector = new DtoInspector(DtoWithMapKey::class);
-        $keyMap = $inspector->getKeyMap();
+        $schema = DtoSchemaCompiler::compile(DtoWithMapKey::class);
+        $keyMap = $schema->keyMap();
 
         $this->assertEquals([
             'firstName' => 'first_name',

@@ -6,7 +6,7 @@ namespace Tests\Unit\Validation;
 
 use Axiom\DataForge\Attributes\MapKey;
 use Axiom\DataForge\Concerns\AsDto;
-use Axiom\DataForge\Schema\DtoInspector;
+use Axiom\DataForge\Schema\DtoSchemaCompiler;
 use Axiom\DataForge\Validation\ValidationProjector;
 use PHPUnit\Framework\TestCase;
 
@@ -15,7 +15,7 @@ final class ValidationProjectorTest extends TestCase
     public function test_project_normalizes_nested_dto_arrays_to_canonical_keys(): void
     {
         $projected = ValidationProjector::project(
-            new DtoInspector(ProjectorParentFixtureDto::class),
+            DtoSchemaCompiler::compile(ProjectorParentFixtureDto::class),
             [
                 'child' => [
                     'full_name' => 'Ada Lovelace',
@@ -33,7 +33,7 @@ final class ValidationProjectorTest extends TestCase
     public function test_project_converts_backed_enum_instances_to_backing_values(): void
     {
         $projected = ValidationProjector::project(
-            new DtoInspector(ProjectorStatusFixtureDto::class),
+            DtoSchemaCompiler::compile(ProjectorStatusFixtureDto::class),
             [
                 'status' => ProjectorStatus::Draft,
             ]

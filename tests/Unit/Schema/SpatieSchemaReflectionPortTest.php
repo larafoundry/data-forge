@@ -30,25 +30,16 @@ final class SpatieSchemaReflectionPortTest extends TestCase
         $role = $schema->field('role');
         $this->assertNotNull($role);
         $this->assertFalse($role->required);
-        $this->assertTrue($role->hasDefault);
-        $this->assertSame('reader', $role->defaultValue);
         $this->assertNotNull($role->property);
-        $this->assertNotNull($role->parameter);
 
         $publicDefault = $schema->field('publicDefault');
         $this->assertNotNull($publicDefault);
         $this->assertFalse($publicDefault->required);
-        $this->assertTrue($publicDefault->hasDefault);
-        $this->assertSame('public value', $publicDefault->defaultValue);
         $this->assertNotNull($publicDefault->property);
-        $this->assertNull($publicDefault->parameter);
 
         $nickname = $schema->field('nickname');
         $this->assertNotNull($nickname);
         $this->assertFalse($nickname->required);
-        $this->assertTrue($nickname->nullable);
-        $this->assertTrue($nickname->hasDefault);
-        $this->assertNull($nickname->defaultValue);
     }
 
     public function test_schema_records_non_promoted_constructor_parameter_metadata(): void
@@ -61,14 +52,10 @@ final class SpatieSchemaReflectionPortTest extends TestCase
         $name = $schema->field('name');
         $this->assertNotNull($name);
         $this->assertNull($name->property);
-        $this->assertNotNull($name->parameter);
-        $this->assertSame('name', $name->parameter->getName());
 
         $suffix = $schema->field('suffix');
         $this->assertNotNull($suffix);
         $this->assertFalse($suffix->required);
-        $this->assertTrue($suffix->hasDefault);
-        $this->assertSame('!', $suffix->defaultValue);
     }
 
     public function test_schema_records_flat_mapping_and_arrayof_attributes(): void

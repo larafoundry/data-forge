@@ -40,11 +40,11 @@ Important boundaries:
 ## Key Components
 
 - `DtoSchemaCompiler`, `DtoSchema`, `FieldSpec`, and `TypeSpec` are the cached
-  schema source of truth for DTO fields, rules, messages, types, defaults, and
-  input keys.
+  schema source of truth for DTO fields, rules, messages, types, and input
+  keys. Get a schema with `DtoSchemaCompiler::compile($class)` and read it
+  directly; there is no wrapper around it.
 - `DocBlockItemType` reads DTO item types of `array`/`Collection` fields from
   PHPDoc using phpDocumentor (`reflection-docblock` + `type-resolver`).
-- `DtoInspector` is the read API over the compiled schema.
 - `DtoContract` is the only place that should call DTO static `rules()` and
   `messages()`.
 - `InputMapper` should only normalize external input keys to canonical keys.
@@ -121,13 +121,12 @@ namespaces: raw external keys and canonical DTO keys.
 Focused areas:
 
 - DTO schema/reflection: `src/Schema/DtoSchemaCompiler.php`,
-  `src/Schema/DtoInspector.php`, `src/Schema/TypeSpec.php`,
+  `src/Schema/DtoSchema.php`, `src/Schema/TypeSpec.php`,
   `src/Schema/DocBlockItemType.php`.
 - Input mapping/errors: `src/Input/InputMapper.php`,
   `src/Input/UnknownInputKeyValidator.php`, `src/Input/ErrorKeyMapper.php`.
 - Validation flow: `src/Validation/Validator.php`,
-  `src/Validation/ValidationProjector.php`, `src/Validation/RuleScope.php`,
-  `src/Validation/RulePlanner.php`.
+  `src/Validation/ValidationProjector.php`, `src/Validation/RuleScope.php`.
 - Hydration/casting: `src/Hydration/DtoHydrator.php`.
 - Object creation: `src/Hydration/ContainerHelper.php`.
 - Public API: `src/Concerns/AsDto.php`.

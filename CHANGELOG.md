@@ -27,6 +27,11 @@ under **Changed** or **Removed**.
 
 - `#[ArrayOf]`. Declare the item type in PHPDoc instead:
   `@param Collection<int, UserDto> $members`.
+- Undocumented internal classes and methods that only forwarded calls or
+  served tests: `DtoInspector` (read `DtoSchemaCompiler::compile()` instead),
+  `RulePlanner`, the public `Validator` constructor and its `validateSafe()`,
+  `getErrors()`, `getCustomRules()`, and `getAttributes()`. Use the `AsDto`
+  entry points (`fromArray()`, `fromJson()`, `fromArrayable()`).
 
 ### Changed
 

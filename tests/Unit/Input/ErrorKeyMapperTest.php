@@ -7,7 +7,7 @@ namespace Tests\Unit\Input;
 use Axiom\DataForge\Attributes\MapKey;
 use Axiom\DataForge\Concerns\AsDto;
 use Axiom\DataForge\Input\ErrorKeyMapper;
-use Axiom\DataForge\Schema\DtoInspector;
+use Axiom\DataForge\Schema\DtoSchemaCompiler;
 use PHPUnit\Framework\TestCase;
 use Tests\Unit\Attributes\Objects\DtoWithMapKey;
 use Tests\Unit\Attributes\Objects\DtoWithMapKeyNestedCollection;
@@ -16,9 +16,9 @@ class ErrorKeyMapperTest extends TestCase
 {
     public function test_translates_mapped_flat_keys_to_input_keys(): void
     {
-        $inspector = new DtoInspector(DtoWithMapKey::class);
+        $schema = DtoSchemaCompiler::compile(DtoWithMapKey::class);
 
-        $mapped = ErrorKeyMapper::toInputKeys($inspector, [
+        $mapped = ErrorKeyMapper::toInputKeys($schema, [
             'firstName' => ['The first name field is required.'],
             'email' => ['The email field must be valid.'],
         ]);
@@ -30,9 +30,9 @@ class ErrorKeyMapperTest extends TestCase
 
     public function test_leaves_unmapped_keys_untouched(): void
     {
-        $inspector = new DtoInspector(DtoWithMapKey::class);
+        $schema = DtoSchemaCompiler::compile(DtoWithMapKey::class);
 
-        $mapped = ErrorKeyMapper::toInputKeys($inspector, [
+        $mapped = ErrorKeyMapper::toInputKeys($schema, [
             'age' => ['too young'],
             'unknown' => ['not a property'],
         ]);
@@ -43,9 +43,9 @@ class ErrorKeyMapperTest extends TestCase
 
     public function test_translates_nested_dto_path_segment_by_segment(): void
     {
-        $inspector = new DtoInspector(MappedErrorKeyParentFixtureDto::class);
+        $schema = DtoSchemaCompiler::compile(MappedErrorKeyParentFixtureDto::class);
 
-        $mapped = ErrorKeyMapper::toInputKeys($inspector, [
+        $mapped = ErrorKeyMapper::toInputKeys($schema, [
             'person.name' => ['The name field is too short.'],
         ]);
 
@@ -55,9 +55,9 @@ class ErrorKeyMapperTest extends TestCase
 
     public function test_translates_collection_path_and_preserves_list_index(): void
     {
-        $inspector = new DtoInspector(DtoWithMapKeyNestedCollection::class);
+        $schema = DtoSchemaCompiler::compile(DtoWithMapKeyNestedCollection::class);
 
-        $mapped = ErrorKeyMapper::toInputKeys($inspector, [
+        $mapped = ErrorKeyMapper::toInputKeys($schema, [
             'people.0.name' => ['The name field is required.'],
         ]);
 
@@ -67,9 +67,9 @@ class ErrorKeyMapperTest extends TestCase
 
     public function test_returns_empty_bag_unchanged(): void
     {
-        $inspector = new DtoInspector(DtoWithMapKey::class);
+        $schema = DtoSchemaCompiler::compile(DtoWithMapKey::class);
 
-        $this->assertSame([], ErrorKeyMapper::toInputKeys($inspector, []));
+        $this->assertSame([], ErrorKeyMapper::toInputKeys($schema, []));
     }
 }
 

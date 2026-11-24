@@ -7,7 +7,7 @@ namespace Axiom\DataForge\Concerns;
 use Axiom\DataForge\Exceptions\ValidationException;
 use Axiom\DataForge\Hydration\ContainerHelper;
 use Axiom\DataForge\Schema\DtoClass;
-use Axiom\DataForge\Schema\DtoInspector;
+use Axiom\DataForge\Schema\DtoSchemaCompiler;
 use Axiom\DataForge\Validation\DtoRuleBuilder;
 use Axiom\DataForge\Validation\Validator;
 use Illuminate\Contracts\Support\Arrayable;
@@ -125,11 +125,11 @@ trait AsDto
     private static function makeFromArray(array $attributes, bool $rejectsUnknownInputKeys): static
     {
         $className = static::class;
-        $inspector = new DtoInspector($className);
+        $schema = DtoSchemaCompiler::compile($className);
 
-        $validator = Validator::from($inspector, $attributes, $rejectsUnknownInputKeys)
-            ->withRules($inspector->getRules())
-            ->withMessages($inspector->getMessages());
+        $validator = Validator::from($schema, $attributes, $rejectsUnknownInputKeys)
+            ->withRules($schema->rules)
+            ->withMessages($schema->messages);
 
         $validatedData = $validator->validate();
 

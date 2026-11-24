@@ -13,7 +13,6 @@ use ReflectionAttribute;
 use ReflectionClass;
 use ReflectionParameter;
 use ReflectionProperty;
-use ReflectionType;
 use Throwable;
 
 final class DtoSchemaCompiler
@@ -162,21 +161,14 @@ final class DtoSchemaCompiler
         ?ReflectionParameter $parameter
     ): FieldSpec {
         $type = $property?->getType() ?? $parameter?->getType();
-        $hasDefault = self::hasDefault($property, $parameter);
-        $defaultValue = $hasDefault ? self::defaultValue($property, $parameter) : null;
-        $nullable = self::typeAllowsNull($type);
 
         return new FieldSpec(
             $name,
             self::mappedKey($reflection->getName(), $property, $name),
             new TypeSpec($type),
-            ! $hasDefault && ! $nullable,
-            $nullable,
-            $hasDefault,
-            $defaultValue,
+            ! self::hasDefault($property, $parameter) && ! ($type?->allowsNull() ?? false),
             DocBlockItemType::resolve($reflection->getName(), $name, $type, $property, $parameter),
             $property,
-            $parameter,
         );
     }
 
@@ -243,22 +235,5 @@ final class DtoSchemaCompiler
         }
 
         return $property?->hasDefaultValue() ?? false;
-    }
-
-    /**
-     * Only called when hasDefault() is true.
-     */
-    private static function defaultValue(?ReflectionProperty $property, ?ReflectionParameter $parameter): mixed
-    {
-        if ($parameter !== null) {
-            return $parameter->getDefaultValue();
-        }
-
-        return $property?->getDefaultValue();
-    }
-
-    private static function typeAllowsNull(?ReflectionType $type): bool
-    {
-        return $type?->allowsNull() ?? false;
     }
 }
