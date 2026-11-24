@@ -133,3 +133,40 @@ jobs:
 
       - name: Tests
         run: vendor/bin/phpunit
+
+  lowest:
+    name: Tests / PHP 8.1 / Lowest dependencies
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+          tools: composer:v2
+          coverage: none
+
+      - name: Get Composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
+
+      - name: Restore Composer cache
+        uses: actions/cache@v6
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-composer-php-8.1-lowest-${{ hashFiles('composer.json') }}
+          restore-keys: |
+            ${{ runner.os }}-composer-php-8.1-lowest-
+            ${{ runner.os }}-composer-
+
+      - name: Install lowest PHP dependencies
+        run: composer update --no-interaction --prefer-dist --no-progress --prefer-lowest --prefer-stable --with-all-dependencies
+
+      - name: Show resolved versions
+        run: composer show --direct
+
+      - name: Tests
+        run: vendor/bin/phpunit
