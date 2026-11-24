@@ -7,12 +7,15 @@ namespace Axiom\DataForge\Schema;
 use Axiom\DataForge\Exceptions\InspectionException;
 use Closure;
 use Illuminate\Support\Collection;
+use InvalidArgumentException;
 use phpDocumentor\Reflection\DocBlock\Tags\InvalidTag;
 use phpDocumentor\Reflection\DocBlock\Tags\Param;
 use phpDocumentor\Reflection\DocBlock\Tags\Var_;
 use phpDocumentor\Reflection\DocBlockFactory;
 use phpDocumentor\Reflection\DocBlockFactoryInterface;
 use phpDocumentor\Reflection\PseudoTypes\ArrayShape;
+use phpDocumentor\Reflection\PseudoTypes\Conditional;
+use phpDocumentor\Reflection\PseudoTypes\ConditionalForParameter;
 use phpDocumentor\Reflection\PseudoTypes\Generic;
 use phpDocumentor\Reflection\PseudoTypes\ObjectShape;
 use phpDocumentor\Reflection\Type;
@@ -54,7 +57,9 @@ final class DocBlockItemType
 {
     private const ARRAY = 'array';
 
-    private const SUPPORTED_FORMS = "'Dto[]', 'array<int, Dto>', or 'Collection<int, Dto>'";
+    private const ARRAY_FORMS = "'Dto[]' or 'array<int, Dto>'";
+
+    private const COLLECTION_FORMS = "'Dto[]', 'array<int, Dto>', or 'Collection<int, Dto>'";
 
     private static ?DocBlockFactoryInterface $factory = null;
 
@@ -215,10 +220,22 @@ final class DocBlockItemType
         $resolved = [];
         foreach (self::declarers($class, $declares) as $declarer) {
             $types = [];
-            foreach (self::factory()->create($docComment, self::context($declarer))->getTags() as $tag) {
+            try {
+                $tags = self::factory()->create($docComment, self::context($declarer))->getTags();
+            } catch (InvalidArgumentException $e) {
+                throw new InspectionException("PHPDoc of field '$name' on $fieldClass cannot be parsed: {$e->getMessage()}", 0, $e);
+            }
+
+            foreach ($tags as $tag) {
                 if ($tag instanceof InvalidTag) {
+                    // phpDocumentor names some failed tags after another tag (a broken
+                    // `@param` can be reported as `method`), so every tag is checked.
+                    $reason = $tag->getException()?->getMessage();
+
                     throw new InspectionException(
-                        "PHPDoc of field '$name' on $fieldClass has a tag that cannot be parsed: '{$tag}' (".$tag->getException()?->getMessage().')'
+                        "PHPDoc of field '$name' on $fieldClass has a tag that cannot be parsed: '"
+                        .trim('@'.ltrim($tag->getName(), '@').' '.$tag)."'"
+                        .($reason === null || $reason === '' ? '' : " ($reason)")
                     );
                 }
 
@@ -306,10 +323,12 @@ final class DocBlockItemType
                 continue;
             }
 
-            $nativeType = $container === self::ARRAY ? 'array' : $container;
+            [$nativeType, $forms] = $container === self::ARRAY
+                ? ['array', self::ARRAY_FORMS]
+                : [$container, self::COLLECTION_FORMS];
 
             throw new InspectionException(
-                "PHPDoc '$type' of field '$name' on $class is not a supported DTO list for native type '$nativeType' (at '$member'); use ".self::SUPPORTED_FORMS
+                "PHPDoc '$type' of field '$name' on $class is not a supported DTO list for native type '$nativeType' (at '$member'); use $forms"
             );
         }
 
@@ -414,6 +433,7 @@ final class DocBlockItemType
             ),
             $type instanceof AbstractList => array_filter([$type->getOriginalKeyType(), $type->getOriginalValueType()]),
             $type instanceof Generic => $type->getTypes(),
+            $type instanceof Conditional, $type instanceof ConditionalForParameter => [$type->getIf(), $type->getElse()],
             default => [],
         };
 

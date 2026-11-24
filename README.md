@@ -390,7 +390,7 @@ resolves `use` imports and aliases:
 
 | Native type | Supported PHPDoc | Result |
 | --- | --- | --- |
-| `Collection` (or a subclass) | `Collection<UserDto>`, `Collection<int, UserDto>`, `UserDto[]`, `Collection\|UserDto[]` | the declared collection class of `UserDto` |
+| `Collection` (or a subclass) | `Collection<UserDto>`, `Collection<int, UserDto>`, `UserDto[]`, `array<int, UserDto>`, `Collection\|UserDto[]` | the declared collection class of `UserDto` |
 | `array` | `UserDto[]`, `array<UserDto>`, `array<int, UserDto>`, `array\|UserDto[]` | a list of `UserDto` |
 
 - Nullable forms (`?…` or `…|null`) are supported.
@@ -415,7 +415,7 @@ it must be exactly one of the forms above. Anything else throws
 
 - an unknown class (check the name and its `use` import)
 - a malformed tag such as `array<int, UserDto $users`
-- `list<UserDto>`, `array{0: UserDto}`, or other PHPStan-only types
+- `list<UserDto>`, `array{0: UserDto}`, conditional types, or other PHPStan-only types
 - keys other than `int` (including `positive-int`), nullable items, nested
   lists such as `UserDto[][]`, or `static[]` and `parent[]`
 - a DTO list mixed with other types, such as `UserDto[]|string[]`

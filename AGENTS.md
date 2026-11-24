@@ -95,6 +95,10 @@ Important boundaries:
   read by `DocBlockItemType` through phpDocumentor. Never hand-write a docblock
   or type parser. `@phpstan-*` and `@psalm-*` tags are not read yet. Forms that
   name a DTO but cannot be honored are `InspectionException`s.
+- Behavior that was reviewed and kept on purpose (including known
+  phpDocumentor limitations) is pinned in
+  `tests/Feature/DtoPipeline/PhpDocDecidedBehaviorTest.php`, each with its
+  reason. Do not report or "fix" those cases unless the contract changes.
 - Spatie-style `DataCollection`, paginated/cursor collections, and custom
   collection wrapper APIs are outside the current package scope.
 - Custom casts, global casts, scalar coercion, and collection coercion are not

@@ -72,10 +72,23 @@ final class PhpDocCollectionItemTypeTest extends TestCase
                 .DocTraitPropertyFixtureDto::class.' and '.PhpDocMemberPropertyTrait::class
                 .": '\\Tests\\Feature\\DtoPipeline\\Member[]' and '\\".Person::class."[]'; use fully-qualified class names",
         ];
+        // phpDocumentor reports this broken @param under the tag name "method".
         yield 'tag phpDocumentor cannot parse' => [
             DocUnparsableShapeFixtureDto::class,
             "PHPDoc of field 'people' on ".DocUnparsableShapeFixtureDto::class
-                ." has a tag that cannot be parsed: 'non-empty-array{first: Person} \$people' (Unsupported array shape kind)",
+                ." has a tag that cannot be parsed: '@method non-empty-array{first: Person} \$people' (Unsupported array shape kind)",
+        ];
+        yield 'tag phpDocumentor refuses to read' => [
+            DocTagTypoFixtureDto::class,
+            "PHPDoc of field 'people' on ".DocTagTypoFixtureDto::class.' cannot be parsed: The tag "@param\\',
+        ];
+        yield 'suggested forms for an array field' => [
+            DocGenericOnArrayFixtureDto::class,
+            "; use 'Dto[]' or 'array<int, Dto>'",
+        ];
+        yield 'suggested forms for a collection field' => [
+            DocStringKeyCollectionFixtureDto::class,
+            "; use 'Dto[]', 'array<int, Dto>', or 'Collection<int, Dto>'",
         ];
         yield 'unknown class' => [
             DocUnknownClassFixtureDto::class,
@@ -87,6 +100,7 @@ final class PhpDocCollectionItemTypeTest extends TestCase
         yield 'nested list' => $unsupported(DocNestedListFixtureDto::class, 'array');
         yield 'static item type' => $unsupported(DocStaticItemFixtureDto::class, 'array');
         yield 'parent item type' => $unsupported(DocParentItemFixtureDto::class, 'array');
+        yield 'conditional type' => $unsupported(DocConditionalFixtureDto::class, 'array');
         yield 'DTO list mixed with another list' => $unsupported(DocMixedListFixtureDto::class, 'array');
         yield 'list pseudo type' => $unsupported(DocListFixtureDto::class, 'array');
         yield 'array shape' => $unsupported(DocShapeFixtureDto::class, 'array');
@@ -252,7 +266,7 @@ final class PhpDocCollectionItemTypeTest extends TestCase
     {
         $this->expectException(InspectionException::class);
         $this->expectExceptionMessageMatches(
-            "/^PHPDoc of field 'people' on ".preg_quote(DocMalformedTagFixtureDto::class, '/')." has a tag that cannot be parsed: 'array<int, Person  \\\$people' \\(.+\\)$/"
+            "/^PHPDoc of field 'people' on ".preg_quote(DocMalformedTagFixtureDto::class, '/')." has a tag that cannot be parsed: '@param array<int, Person  \\\$people' \\(.+\\)$/"
         );
 
         new DtoInspector(DocMalformedTagFixtureDto::class);
@@ -784,4 +798,24 @@ final class DocIntersectionNativeFixtureDto
      * @param  Person[]  $people
      */
     public function __construct(public readonly Collection&DocMarker $people) {}
+}
+
+final class DocTagTypoFixtureDto
+{
+    use AsDto;
+
+    /**
+     * @param\Tests\Feature\AsDto\Objects\BasicDto[] $people
+     */
+    public function __construct(public readonly array $people) {}
+}
+
+final class DocConditionalFixtureDto
+{
+    use AsDto;
+
+    /**
+     * @param  ($flag is true ? Person[] : string[])  $people
+     */
+    public function __construct(public readonly bool $flag, public readonly array $people) {}
 }
