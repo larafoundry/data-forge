@@ -115,6 +115,78 @@ final class NestedRulesAndInputMappingTest extends TestCase
             $this->assertArrayHasKey('nickname', $e->errors);
         }
     }
+
+    public function test_mapped_field_type_message_names_the_external_input_key(): void
+    {
+        try {
+            MappedMessageParentFixtureDto::fromArray([
+                'email_address' => 123,
+                'home_address' => ['zip_code' => '10000'],
+            ]);
+
+            $this->fail('Validation should have failed');
+        } catch (ValidationException $e) {
+            $this->assertSame(
+                ['email_address' => ['The email address field has an invalid type.']],
+                $e->errors
+            );
+        }
+    }
+
+    public function test_nested_mapped_field_type_message_names_the_external_input_key(): void
+    {
+        try {
+            MappedMessageParentFixtureDto::fromArray([
+                'email_address' => 'ada@example.com',
+                'home_address' => ['zip_code' => 123],
+            ]);
+
+            $this->fail('Validation should have failed');
+        } catch (ValidationException $e) {
+            $this->assertSame(
+                ['home_address.zip_code' => ['The zip code field has an invalid type.']],
+                $e->errors
+            );
+        }
+    }
+
+    public function test_mapped_required_field_message_names_the_external_input_key(): void
+    {
+        try {
+            MappedMessageParentFixtureDto::fromArray([
+                'home_address' => ['zip_code' => '10000'],
+            ]);
+
+            $this->fail('Validation should have failed');
+        } catch (ValidationException $e) {
+            $this->assertSame(
+                ['The email address field is required.'],
+                $e->errors['email_address'] ?? null
+            );
+        }
+    }
+}
+
+final class MappedMessageChildFixtureDto
+{
+    use AsDto;
+
+    public function __construct(
+        #[MapKey('zip_code')]
+        public readonly string $zip,
+    ) {}
+}
+
+final class MappedMessageParentFixtureDto
+{
+    use AsDto;
+
+    public function __construct(
+        #[MapKey('email_address')]
+        public readonly string $email,
+        #[MapKey('home_address')]
+        public readonly MappedMessageChildFixtureDto $address,
+    ) {}
 }
 
 final class KnownKeysFixtureDto

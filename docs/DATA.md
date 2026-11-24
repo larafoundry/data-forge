@@ -11,8 +11,9 @@ contracts, deterministic output, plain errors, and no hidden magic.
 
 ### 1) The Contract Is The Source Of Truth
 
-DTO constructor types, public property types, attributes, validation rules, and
-PHPDoc generics define the contract.
+DTO constructor types, public property types, attributes, and validation rules
+define the runtime contract. PHPDoc generics document that contract for static
+analysis and IDEs, but runtime hydration never reads them.
 
 Implementation must follow that contract exactly. Do not add defensive behavior
 that contradicts or weakens it.
@@ -24,8 +25,8 @@ explicit Laravel compatibility path, and `Stringable` rule objects are accepted
 for Laravel's stringable rule builders.
 
 If the contract says `string`, invalid input must fail. If the contract says
-`Collection<int, UserDto>`, the package must hydrate a collection of `UserDto`
-objects or report why it cannot.
+`#[ArrayOf(UserDto::class)] Collection`, the package must hydrate a collection
+of `UserDto` objects or report why it cannot.
 
 ### 2) Fail Loudly, Fail Early
 

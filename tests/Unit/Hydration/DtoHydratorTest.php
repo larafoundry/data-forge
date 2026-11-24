@@ -11,7 +11,9 @@ use Axiom\DataForge\Exceptions\ValidationException;
 use Axiom\DataForge\Hydration\DtoHydrator;
 use Axiom\DataForge\Schema\DtoInspector;
 use Carbon\CarbonImmutable;
+use DateTime;
 use DateTimeImmutable;
+use DateTimeInterface;
 use Illuminate\Support\Collection;
 use PHPUnit\Framework\TestCase;
 
@@ -43,6 +45,27 @@ final class DtoHydratorTest extends TestCase
 
         $this->assertInstanceOf(CarbonImmutable::class, $hydrated['date']);
         $this->assertSame('2024-12-31', $hydrated['date']->format('Y-m-d'));
+    }
+
+    public function test_hydrate_date_format_resets_fields_missing_from_the_format(): void
+    {
+        $hydrated = DtoHydrator::hydrate(
+            new DtoInspector(HydratorDateOnlyFormatFixtureDto::class),
+            [
+                'carbon' => '31/12/2024',
+                'immutable' => '31/12/2024',
+                'mutable' => '31/12/2024',
+                'zoned' => '31/12/2024',
+            ]
+        );
+
+        foreach (['carbon', 'immutable', 'mutable', 'zoned'] as $key) {
+            $this->assertInstanceOf(DateTimeInterface::class, $hydrated[$key]);
+            $this->assertSame('2024-12-31 00:00:00.000000', $hydrated[$key]->format('Y-m-d H:i:s.u'), $key);
+        }
+
+        $this->assertInstanceOf(DateTimeInterface::class, $hydrated['zoned']);
+        $this->assertSame('Asia/Ho_Chi_Minh', $hydrated['zoned']->getTimezone()->getName());
     }
 
     public function test_hydrate_builds_nested_dto_collections(): void
@@ -100,6 +123,22 @@ final class HydratorFormattedDateFixtureDto
     public function __construct(
         #[DateFormat('d/m/Y')]
         public readonly CarbonImmutable $date,
+    ) {}
+}
+
+final class HydratorDateOnlyFormatFixtureDto
+{
+    use AsDto;
+
+    public function __construct(
+        #[DateFormat('d/m/Y')]
+        public readonly CarbonImmutable $carbon,
+        #[DateFormat('d/m/Y')]
+        public readonly DateTimeImmutable $immutable,
+        #[DateFormat('d/m/Y')]
+        public readonly DateTime $mutable,
+        #[DateFormat('d/m/Y', 'Asia/Ho_Chi_Minh')]
+        public readonly DateTimeImmutable $zoned,
     ) {}
 }
 

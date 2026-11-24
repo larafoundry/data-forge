@@ -14,6 +14,7 @@ use Axiom\DataForge\Input\InputMapper;
 use Axiom\DataForge\Input\UnknownInputKeyValidator;
 use Axiom\DataForge\Schema\DtoInspector;
 use Illuminate\Container\Container;
+use Illuminate\Support\Str;
 use Illuminate\Translation\ArrayLoader;
 use Illuminate\Translation\Translator;
 use Illuminate\Validation\Factory as ValidationFactory;
@@ -319,6 +320,26 @@ final class Validator
     }
 
     /**
+     * Render `:attribute` in messages from the external input key for mapped
+     * fields, so the message text matches the error key the caller sees.
+     *
+     * @return array<string,string>
+     *
+     * @throws InspectionException
+     */
+    private function displayAttributes(): array
+    {
+        $display = [];
+        foreach ($this->inspector->getKeyMap() as $property => $inputKey) {
+            if ($property !== $inputKey) {
+                $display[$property] = str_replace('_', ' ', Str::snake($inputKey));
+            }
+        }
+
+        return $display;
+    }
+
+    /**
      * @param  array<string,mixed>  $attributes
      * @param  array<string,array<int,BuiltRule>>  $rules
      * @return array<string,mixed>
@@ -327,7 +348,7 @@ final class Validator
      */
     private function validateAttributes(array $attributes, array $rules): array
     {
-        $validator = $this->factory->make($attributes, $rules, $this->messages);
+        $validator = $this->factory->make($attributes, $rules, $this->messages, $this->displayAttributes());
 
         if ($validator->fails()) {
             $this->errors = self::stringErrorBag($validator->errors()->toArray());
