@@ -1,7 +1,8 @@
 {
   "preset": "laravel",
   "exclude": [
-    "references"
+    "references",
+    "tests/Feature/DtoPipeline/Fixtures"
   ],
   "rules": {
     "array_push": true,

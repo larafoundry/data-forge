@@ -25,6 +25,7 @@ DTOs, collections, enums, and date-like objects.
 - `illuminate/support`, `illuminate/validation`, `illuminate/container`, and
   `illuminate/translation` 10.48+, 11, 12, or 13
 - Composer
+- the `tokenizer` extension (enabled by default in PHP)
 - `opcache.save_comments` left enabled (the PHP default), because collection
   item types are read from PHPDoc
 
@@ -398,10 +399,13 @@ resolves `use` imports and aliases:
 - A generic may name the field's class or one of its parents or interfaces,
   for example `Enumerable<int, UserDto>` on a `Collection` field.
 - Types are read from the constructor's `@param` tag or the property's `@var`
-  tag; if both are present they must agree.
-- PHP reflection cannot tell whether a member was declared in a trait or in
-  the class using it, so PHPDoc on a trait member must mean the same type in
-  both files. Use fully-qualified class names in trait PHPDoc.
+  tag; if both are present they must agree. A `@param` tag must name its
+  parameter; a `@var` tag that names a different property is ignored.
+- Data Forge trusts phpDocumentor to parse PHPDoc and resolve class names and
+  does not patch its results. phpDocumentor resolves PHPDoc in a trait with
+  the imports of the class using the trait, so use fully-qualified class names
+  in trait PHPDoc. Group imports with sub-namespaces
+  (`use App\{Dto\UserDto}`) are not resolved; use `use App\Dto\UserDto;`.
 - Item types that are not DTO objects (such as `Collection<int, string>` or
   `class-string<UserDto>[]`) leave the field untouched. Untyped fields are
   never hydrated.
@@ -421,7 +425,6 @@ it must be exactly one of the forms above. Anything else throws
 - a DTO list mixed with other types, such as `UserDto[]|string[]`
 - more than one DTO item type, or a union or intersection native type such as `array|Collection`
 - more than one `@param` (or `@var`) tag for the same field
-- trait PHPDoc that resolves to a different type in the using class
 
 A `Collection` subclass whose constructor cannot take the list of items, or
 does not keep it, throws `InstantiationException`.

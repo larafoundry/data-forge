@@ -17,7 +17,6 @@ use PHPUnit\Framework\TestCase;
 use stdClass;
 use Tests\Feature\AsDto\Objects\BasicDto as Person;
 use Tests\Feature\DtoPipeline\Objects\PhpDocMemberConstructorTrait;
-use Tests\Feature\DtoPipeline\Objects\PhpDocMemberPropertyTrait;
 
 /**
  * DTO item types of `array` and `Collection` fields come from traditional
@@ -65,12 +64,6 @@ final class PhpDocCollectionItemTypeTest extends TestCase
         yield 'two @var tags for the field' => [
             DocDuplicateVarFixtureDto::class,
             "PHPDoc of field 'people' on ".DocDuplicateVarFixtureDto::class.' has more than one @var tag for it',
-        ];
-        yield 'trait PHPDoc that resolves differently in the class' => [
-            DocTraitPropertyFixtureDto::class,
-            "PHPDoc of field 'members' on ".DocTraitPropertyFixtureDto::class.' resolves to different types in '
-                .DocTraitPropertyFixtureDto::class.' and '.PhpDocMemberPropertyTrait::class
-                .": '\\Tests\\Feature\\DtoPipeline\\Member[]' and '\\".Person::class."[]'; use fully-qualified class names",
         ];
         // phpDocumentor reports this broken @param under the tag name "method".
         yield 'tag phpDocumentor cannot parse' => [
@@ -421,12 +414,6 @@ final class DocMatchingTagsFixtureDto
         /** @var Person[] */
         public readonly array $people,
     ) {}
-}
-
-final class DocTraitPropertyFixtureDto
-{
-    use AsDto;
-    use PhpDocMemberPropertyTrait;
 }
 
 final class DocTraitConstructorFixtureDto

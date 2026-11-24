@@ -10,12 +10,20 @@ use Axiom\DataForge\Schema\DtoInspector;
 use PHPUnit\Framework\TestCase;
 use Tests\Feature\AsDto\Objects\BasicDto as Person;
 use Tests\Feature\DtoPipeline\KnownLimitations\Aliased\AliasedConstructorDto;
+use Tests\Feature\DtoPipeline\KnownLimitations\GroupedImport\GroupedImportDto;
 use Tests\Feature\DtoPipeline\KnownLimitations\SecondBlockDto;
+use Tests\Feature\DtoPipeline\KnownLimitations\Traits\HasPeople;
+use Tests\Feature\DtoPipeline\KnownLimitations\VarName\OtherVariableVarDto;
+use Tests\Feature\DtoPipeline\Objects\PhpDocMemberPropertyTrait;
 
-require_once __DIR__.'/Fixtures/phpdoc-known-limitations.php';
+require_once __DIR__.'/Fixtures/phpdoc-decided-fixtures.php';
 
 /**
  * PHPDoc item type behavior that was reviewed and kept on purpose.
+ *
+ * Data Forge trusts phpDocumentor for parsing PHPDoc and resolving class names
+ * (including which file's imports apply). It does not redo or patch that work;
+ * phpDocumentor's limitations are pinned here as known limitations.
  *
  * Each test states why. Reviewers (human or AI): these are decisions, not
  * bugs. Do not report them again unless the public contract in README.md or
@@ -95,6 +103,62 @@ final class PhpDocDecidedBehaviorTest extends TestCase
         $dto = DecidedRenamedParameterDto::fromArray(['users' => [['age' => 25]]]);
 
         $this->assertSame([['age' => 25]], $dto->users);
+    }
+
+    /**
+     * A `@var` tag may omit the variable name, but a tag naming another
+     * property is not matched, like a stale `@param` name. PHPStan reports it.
+     */
+    public function test_var_tag_naming_another_property_is_not_matched(): void
+    {
+        $dto = OtherVariableVarDto::fromArray(['reviewers' => [['age' => 25]]]);
+
+        $this->assertSame([['age' => 25]], $dto->reviewers);
+    }
+
+    /**
+     * phpDocumentor resolves PHPDoc of a trait member with the imports of the
+     * class using the trait, and Data Forge does not second-guess it. An
+     * import that only exists in the trait file does not resolve; use
+     * fully-qualified class names in trait PHPDoc.
+     */
+    public function test_trait_phpdoc_is_resolved_with_the_using_class_imports(): void
+    {
+        $this->expectException(InspectionException::class);
+        $this->expectExceptionMessage(
+            "PHPDoc type 'Tests\\Feature\\DtoPipeline\\Member' of field 'members' on "
+            .DecidedTraitImportDto::class.' does not exist'
+        );
+
+        new DtoInspector(DecidedTraitImportDto::class);
+    }
+
+    /**
+     * Known limitation, same cause: when the using class imports another
+     * class under the trait's short name, the class's import wins. Here the
+     * trait means DocOtherItemDto as `Person`, the class means BasicDto.
+     */
+    public function test_known_limitation_class_import_shadows_trait_import(): void
+    {
+        $dto = DecidedShadowedTraitImportDto::fromArray(['people' => [self::PERSON]]);
+
+        $this->assertContainsOnlyInstancesOf(Person::class, $dto->people);
+    }
+
+    /**
+     * Known limitation of phpDocumentor's ContextFactory: a group import with
+     * sub-namespaces (`use A\{B\C as D}`) is not read, so the name does not
+     * resolve. A plain `use A\B\C as D;` works.
+     */
+    public function test_known_limitation_group_import_with_sub_namespaces_is_not_resolved(): void
+    {
+        $this->expectException(InspectionException::class);
+        $this->expectExceptionMessage(
+            "PHPDoc type 'Tests\\Feature\\DtoPipeline\\KnownLimitations\\GroupedImport\\Person' of field 'people' on "
+            .GroupedImportDto::class.' does not exist'
+        );
+
+        new DtoInspector(GroupedImportDto::class);
     }
 
     /**
@@ -193,4 +257,16 @@ final class DecidedRenamedParameterDto
      * @param  Person[]  $members
      */
     public function __construct(public readonly array $users) {}
+}
+
+final class DecidedTraitImportDto
+{
+    use AsDto;
+    use PhpDocMemberPropertyTrait;
+}
+
+final class DecidedShadowedTraitImportDto
+{
+    use AsDto;
+    use HasPeople;
 }

@@ -93,7 +93,9 @@ Important boundaries:
 - DTO collection item types come from traditional PHPDoc on `array` and
   `Collection` fields (`@param` on the constructor, `@var` on the property),
   read by `DocBlockItemType` through phpDocumentor. Never hand-write a docblock
-  or type parser. `@phpstan-*` and `@psalm-*` tags are not read yet. Forms that
+  or type parser, and do not redo or patch what phpDocumentor owns (parsing,
+  name resolution, choosing the import context): trust its result and pin its
+  limitations as tests. `@phpstan-*` and `@psalm-*` tags are not read yet. Forms that
   name a DTO but cannot be honored are `InspectionException`s.
 - Behavior that was reviewed and kept on purpose (including known
   phpDocumentor limitations) is pinned in

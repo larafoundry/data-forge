@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Axiom\DataForge\Schema;
 
 use Axiom\DataForge\Exceptions\InspectionException;
-use Closure;
 use Illuminate\Support\Collection;
 use InvalidArgumentException;
 use phpDocumentor\Reflection\DocBlock\Tags\InvalidTag;
@@ -23,7 +22,6 @@ use phpDocumentor\Reflection\Types\AbstractList;
 use phpDocumentor\Reflection\Types\AggregatedType;
 use phpDocumentor\Reflection\Types\Array_;
 use phpDocumentor\Reflection\Types\Compound;
-use phpDocumentor\Reflection\Types\Context;
 use phpDocumentor\Reflection\Types\ContextFactory;
 use phpDocumentor\Reflection\Types\Integer;
 use phpDocumentor\Reflection\Types\Null_;
@@ -62,9 +60,6 @@ final class DocBlockItemType
     private const COLLECTION_FORMS = "'Dto[]', 'array<int, Dto>', or 'Collection<int, Dto>'";
 
     private static ?DocBlockFactoryInterface $factory = null;
-
-    /** @var array<string, Context> */
-    private static array $contexts = [];
 
     /**
      * @param  class-string  $class
@@ -155,17 +150,7 @@ final class DocBlockItemType
             return null;
         }
 
-        $propertyName = $property->getName();
-
-        return self::docType(
-            $docComment,
-            null,
-            $property->getDeclaringClass(),
-            static fn (ReflectionClass $declarer): bool => $declarer->hasProperty($propertyName)
-                && $declarer->getProperty($propertyName)->getDocComment() === $docComment,
-            $class,
-            $name
-        );
+        return self::tagType($docComment, $property, Var_::class, $property->getName(), $class, $name);
     }
 
     /**
@@ -181,110 +166,69 @@ final class DocBlockItemType
             return null;
         }
 
-        $methodName = $constructor->getName();
-
-        return self::docType(
-            $docComment,
-            $parameter->getName(),
-            $constructor->getDeclaringClass(),
-            static fn (ReflectionClass $declarer): bool => $declarer->hasMethod($methodName)
-                && $declarer->getMethod($methodName)->getDocComment() === $docComment,
-            $class,
-            $name
-        );
+        return self::tagType($docComment, $constructor, Param::class, $parameter->getName(), $class, $name);
     }
 
     /**
-     * The type of the field's `@var` tag (when $parameterName is null) or of
-     * its `@param $parameterName` tag.
+     * The type of the field's `@var` or `@param` tag. phpDocumentor parses the
+     * docblock and resolves names with the imports it picks for $owner (for a
+     * trait member, the class using the trait).
      *
-     * PHP reports a trait member as declared by the class using the trait, so
-     * reflection cannot tell which file's `use` imports apply to its PHPDoc.
-     * The PHPDoc is therefore resolved in every class and trait that may
-     * declare the member, and must mean the same type in all of them.
+     * A `@param` tag must name the parameter. A `@var` tag may omit the name,
+     * but must not name another property.
      *
-     * @param  ReflectionClass<object>  $class
-     * @param  Closure(ReflectionClass<object>): bool  $declares
-     * @param  class-string  $fieldClass
+     * @param  class-string<Var_|Param>  $tagClass
+     * @param  class-string  $class
      *
      * @throws InspectionException
      */
-    private static function docType(
+    private static function tagType(
         string $docComment,
-        ?string $parameterName,
-        ReflectionClass $class,
-        Closure $declares,
-        string $fieldClass,
+        ReflectionProperty|ReflectionMethod $owner,
+        string $tagClass,
+        string $variableName,
+        string $class,
         string $name
     ): ?Type {
-        $resolved = [];
-        foreach (self::declarers($class, $declares) as $declarer) {
-            $types = [];
-            try {
-                $tags = self::factory()->create($docComment, self::context($declarer))->getTags();
-            } catch (InvalidArgumentException $e) {
-                throw new InspectionException("PHPDoc of field '$name' on $fieldClass cannot be parsed: {$e->getMessage()}", 0, $e);
+        try {
+            $tags = self::factory()
+                ->create($docComment, (new ContextFactory())->createFromReflector($owner))
+                ->getTags();
+        } catch (InvalidArgumentException $e) {
+            throw new InspectionException("PHPDoc of field '$name' on $class cannot be parsed: {$e->getMessage()}", 0, $e);
+        }
+
+        $types = [];
+        foreach ($tags as $tag) {
+            if ($tag instanceof InvalidTag) {
+                // phpDocumentor names some failed tags after another tag (a broken
+                // `@param` can be reported as `method`), so every tag is checked.
+                $reason = $tag->getException()?->getMessage();
+
+                throw new InspectionException(
+                    "PHPDoc of field '$name' on $class has a tag that cannot be parsed: '"
+                    .trim('@'.ltrim($tag->getName(), '@').' '.$tag)."'"
+                    .($reason === null || $reason === '' ? '' : " ($reason)")
+                );
             }
 
-            foreach ($tags as $tag) {
-                if ($tag instanceof InvalidTag) {
-                    // phpDocumentor names some failed tags after another tag (a broken
-                    // `@param` can be reported as `method`), so every tag is checked.
-                    $reason = $tag->getException()?->getMessage();
-
-                    throw new InspectionException(
-                        "PHPDoc of field '$name' on $fieldClass has a tag that cannot be parsed: '"
-                        .trim('@'.ltrim($tag->getName(), '@').' '.$tag)."'"
-                        .($reason === null || $reason === '' ? '' : " ($reason)")
-                    );
-                }
-
-                if (($parameterName === null && $tag instanceof Var_)
-                    || ($tag instanceof Param && $tag->getVariableName() === $parameterName)) {
-                    $types[] = $tag->getType();
-                }
+            if (! ($tag instanceof $tagClass)) {
+                continue;
             }
 
-            if (count($types) > 1) {
-                $tagName = $parameterName === null ? '@var' : '@param';
-
-                throw new InspectionException("PHPDoc of field '$name' on $fieldClass has more than one $tagName tag for it");
-            }
-
-            if ($types !== [] && $types[0] !== null) {
-                $resolved[$declarer->getName()] = $types[0];
+            $tagVariable = $tag->getVariableName();
+            if ($tagVariable === $variableName || ($tag instanceof Var_ && ($tagVariable === null || $tagVariable === ''))) {
+                $types[] = $tag->getType();
             }
         }
 
-        $distinct = array_unique(array_map('strval', $resolved));
-        if (count($distinct) > 1) {
-            throw new InspectionException(
-                "PHPDoc of field '$name' on $fieldClass resolves to different types in "
-                .implode(' and ', array_keys($distinct)).": '".implode("' and '", $distinct)."'; use fully-qualified class names"
-            );
+        if (count($types) > 1) {
+            $tagName = $tagClass === Var_::class ? '@var' : '@param';
+
+            throw new InspectionException("PHPDoc of field '$name' on $class has more than one $tagName tag for it");
         }
 
-        return $resolved === [] ? null : reset($resolved);
-    }
-
-    /**
-     * $class and every trait it uses, directly or through other traits, that
-     * may declare the member.
-     *
-     * @param  ReflectionClass<object>  $class
-     * @param  Closure(ReflectionClass<object>): bool  $declares
-     * @return list<ReflectionClass<object>>
-     */
-    private static function declarers(ReflectionClass $class, Closure $declares): array
-    {
-        $declarers = [$class];
-        foreach ($class->getTraits() as $trait) {
-            if ($declares($trait)) {
-                array_push($declarers, ...self::declarers($trait, $declares));
-            }
-        }
-
-        return $declarers;
+        return $types[0] ?? null;
     }
 
     /**
@@ -470,13 +414,5 @@ final class DocBlockItemType
     private static function factory(): DocBlockFactoryInterface
     {
         return self::$factory ??= DocBlockFactory::createInstance();
-    }
-
-    /**
-     * @param  ReflectionClass<object>  $owner
-     */
-    private static function context(ReflectionClass $owner): Context
-    {
-        return self::$contexts[$owner->getName()] ??= (new ContextFactory())->createFromReflector($owner);
     }
 }

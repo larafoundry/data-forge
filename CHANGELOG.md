@@ -15,11 +15,11 @@ under **Changed** or **Removed**.
 - DTO collection item types are read from traditional PHPDoc on `array` and
   `Collection` fields: `Collection<int, UserDto>`, `Collection<UserDto>`,
   `UserDto[]`, `Collection|UserDto[]`, `array<int, UserDto>`, `self[]`, and
-  nullable forms, from constructor `@param` or property `@var` tags (including
-  tags in traits, which must resolve to the same type in the trait and the
-  using class). Parsing uses `phpdocumentor/reflection-docblock`
-  ^6.0 and `phpdocumentor/type-resolver` ^2.0. `opcache.save_comments` must
-  stay enabled.
+  nullable forms, from constructor `@param` or property `@var` tags. Parsing
+  and name resolution are left to `phpdocumentor/reflection-docblock` ^6.0 and
+  `phpdocumentor/type-resolver` ^2.0 (PHPDoc in a trait resolves with the
+  using class's imports). Requires `ext-tokenizer`, and
+  `opcache.save_comments` must stay enabled.
 - `array` fields with a DTO item type hydrate into a list of DTOs, and
   `Collection` subclasses hydrate into the declared class.
 
@@ -35,8 +35,7 @@ under **Changed** or **Removed**.
   covers unknown classes, malformed tags, PHPStan-only types such as
   `list<UserDto>`, keys other than `int`, nullable items, nested lists,
   `static[]`/`parent[]`, DTO lists mixed with other types, conflicting or
-  repeated `@param`/`@var` tags, trait PHPDoc that resolves differently in the
-  using class, and union or intersection native types.
+  repeated `@param`/`@var` tags, and union or intersection native types.
   Stripped doc comments (`opcache.save_comments=0`) also throw. `@phpstan-*`
   and `@psalm-*` tags are not read.
 - A `Collection` subclass that cannot be built from the item list, or does not
