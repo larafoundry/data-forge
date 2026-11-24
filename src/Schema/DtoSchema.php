@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Axiom\DataForge\Schema;
 
 use Axiom\DataForge\Validation\DtoRuleBuilder;
-use ReflectionClass;
 
 /**
  * @template T of object
@@ -16,14 +15,12 @@ final class DtoSchema
 {
     /**
      * @param  class-string<T>  $class
-     * @param  ReflectionClass<T>  $reflection
      * @param  array<string,FieldSpec>  $fields
      * @param  array<string,string|array<int,RuleValue>>  $rules
      * @param  array<string,string>  $messages
      */
     public function __construct(
         public readonly string $class,
-        public readonly ReflectionClass $reflection,
         public readonly array $fields,
         public readonly array $rules,
         public readonly array $messages,

@@ -48,6 +48,25 @@ final class DtoSchemaCompilerTest extends TestCase
         $this->assertTrue($displayName->type->allowsNull());
     }
 
+    /**
+     * Like PHP, a default value is evaluated only when the field is omitted.
+     * Compiling a schema has no side effects, so a default such as
+     * `new Ticket()` is not constructed just to inspect the DTO.
+     */
+    public function test_default_values_are_evaluated_only_when_the_field_is_omitted(): void
+    {
+        SchemaDefaultCounter::$created = 0;
+
+        DtoSchemaCompiler::compile(SchemaLazyDefaultFixtureDto::class);
+        $this->assertSame(0, SchemaDefaultCounter::$created);
+
+        SchemaLazyDefaultFixtureDto::fromArray(['counter' => new SchemaDefaultCounter()]);
+        $this->assertSame(1, SchemaDefaultCounter::$created);
+
+        SchemaLazyDefaultFixtureDto::fromArray([]);
+        $this->assertSame(2, SchemaDefaultCounter::$created);
+    }
+
     public function test_compiler_stores_dto_rules_and_messages_on_the_schema(): void
     {
         $schema = DtoSchemaCompiler::compile(SchemaContractFixtureDto::class);
@@ -179,4 +198,21 @@ final class NonArrayMessagesSchemaFixtureDto
     {
         return 'name is required';
     }
+}
+
+final class SchemaDefaultCounter
+{
+    public static int $created = 0;
+
+    public function __construct()
+    {
+        self::$created++;
+    }
+}
+
+final class SchemaLazyDefaultFixtureDto
+{
+    use AsDto;
+
+    public function __construct(public readonly SchemaDefaultCounter $counter = new SchemaDefaultCounter()) {}
 }

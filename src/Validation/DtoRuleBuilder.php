@@ -41,6 +41,8 @@ final class DtoRuleBuilder
      * @param  DtoSchema<object>  $schema
      * @param  array<string,array<int,RuleValue>>  $customRules
      * @param  array<string,mixed>  $attributes
+     * @param  bool  $afterHydration  false: attribute rules for the projected input;
+     *                                true: type checks for the hydrated values
      * @return array<string, array<int,BuiltRule>>
      *
      * @throws InspectionException
@@ -49,8 +51,7 @@ final class DtoRuleBuilder
         DtoSchema $schema,
         array $customRules,
         array $attributes,
-        bool $includeTypeRules = true,
-        bool $includeAttributeRules = true,
+        bool $afterHydration,
     ): array {
         /** @var array<string, array<int,BuiltRule>> $rules */
         $rules = [];
@@ -65,7 +66,7 @@ final class DtoRuleBuilder
                 $rules[$key][] = 'nullable';
             }
 
-            if ($includeTypeRules) {
+            if ($afterHydration) {
                 $rules[$key][] = static function (string $attribute, mixed $value, Closure $fail) use ($type) {
                     if (! $type->accepts($value)) {
                         $fail('The :attribute field has an invalid type.');
@@ -73,7 +74,7 @@ final class DtoRuleBuilder
                 };
             }
 
-            if ($includeAttributeRules) {
+            if (! $afterHydration) {
                 $attributeRules = self::buildAttributeRules($field);
                 if ($attributeRules !== []) {
                     $rules[$key] = array_merge($rules[$key] ?? [], $attributeRules);

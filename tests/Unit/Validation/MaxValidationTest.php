@@ -39,7 +39,7 @@ final class MaxValidationTest extends TestCase
     {
         $schema = DtoSchemaCompiler::compile(TestDto::class);
 
-        $rules = DtoRuleBuilder::build($schema, ['age' => ['max:50']], ['name' => 'John', 'age' => 100]);
+        $rules = DtoRuleBuilder::build($schema, ['age' => ['max:50']], ['name' => 'John', 'age' => 100], afterHydration: false);
 
         $this->assertContains('max:50', $rules['age']);
     }

@@ -241,7 +241,7 @@ final class Validator
             $this->schema,
             $this->rules,
             $preHydrationAttributes,
-            includeTypeRules: false
+            afterHydration: false
         );
         $this->validateAttributes($preHydrationAttributes, $preHydrationRules);
 
@@ -250,7 +250,7 @@ final class Validator
             $this->schema,
             [],
             $hydratedAttributes,
-            includeAttributeRules: false
+            afterHydration: true
         );
 
         return $this->validateAttributes($hydratedAttributes, $postHydrationRules);

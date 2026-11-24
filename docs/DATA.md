@@ -74,7 +74,7 @@ be translated as canonical property paths.
 ### 5) Boundary-Only Transformation
 
 Parsing, casting, validation, and normalization belong inside the boundary
-pipeline: input array, inspector, validator, caster, and DTO constructor.
+pipeline: input array, schema compiler, validator, caster, and DTO constructor.
 
 After a DTO exists, its values should already be valid. Core code must not need
 extra "just in case" cleanup.

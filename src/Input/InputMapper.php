@@ -15,13 +15,10 @@ final class InputMapper
      */
     public static function normalize(DtoSchema $schema, array $attributes): array
     {
-        $keyMap = $schema->keyMap();
-
         $normalized = [];
-        foreach ($schema->acceptedKeys() as $propertyName) {
-            $inputKey = $keyMap[$propertyName] ?? $propertyName;
-            if (array_key_exists($inputKey, $attributes)) {
-                $normalized[$propertyName] = $attributes[$inputKey];
+        foreach ($schema->fields as $propertyName => $field) {
+            if (array_key_exists($field->inputKey, $attributes)) {
+                $normalized[$propertyName] = $attributes[$field->inputKey];
             }
         }
 

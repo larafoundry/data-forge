@@ -69,7 +69,6 @@ final class DtoSchemaCompiler
 
         $schema = new DtoSchema(
             $class,
-            $reflection,
             $fields,
             DtoContract::rules($class),
             DtoContract::messages($class)

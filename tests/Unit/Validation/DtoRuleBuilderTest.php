@@ -45,7 +45,7 @@ final class DtoRuleBuilderTest extends TestCase
     public function test_build_creates_required_rules(): void
     {
         $schema = DtoSchemaCompiler::compile(TestDto::class);
-        $rules = DtoRuleBuilder::build($schema, [], []);
+        $rules = DtoRuleBuilder::build($schema, [], [], afterHydration: false);
 
         $this->assertIsArray($rules);
         $this->assertArrayHasKey('name', $rules);
@@ -57,7 +57,7 @@ final class DtoRuleBuilderTest extends TestCase
     public function test_build_handles_optional_properties(): void
     {
         $schema = DtoSchemaCompiler::compile(TestDto::class);
-        $rules = DtoRuleBuilder::build($schema, [], []);
+        $rules = DtoRuleBuilder::build($schema, [], [], afterHydration: false);
 
         $this->assertIsArray($rules);
         $this->assertArrayHasKey('email', $rules);
@@ -74,7 +74,7 @@ final class DtoRuleBuilderTest extends TestCase
             'email' => ['email'],
         ];
 
-        $rules = DtoRuleBuilder::build($schema, $customRules, []);
+        $rules = DtoRuleBuilder::build($schema, $customRules, [], afterHydration: false);
 
         $this->assertIsArray($rules);
         $this->assertContains('required', $rules['name']);
@@ -92,7 +92,7 @@ final class DtoRuleBuilderTest extends TestCase
             'unknown_field' => 'some value',
         ];
 
-        $rules = DtoRuleBuilder::build($schema, [], $payload);
+        $rules = DtoRuleBuilder::build($schema, [], $payload, afterHydration: false);
 
         $this->assertIsArray($rules);
         $this->assertArrayHasKey('unknown_field', $rules);
@@ -102,7 +102,7 @@ final class DtoRuleBuilderTest extends TestCase
     public function test_build_adds_type_validation(): void
     {
         $schema = DtoSchemaCompiler::compile(TestDto::class);
-        $rules = DtoRuleBuilder::build($schema, [], []);
+        $rules = DtoRuleBuilder::build($schema, [], [], afterHydration: true);
 
         $this->assertIsArray($rules);
         $this->assertGreaterThanOrEqual(1, count($rules['name']));

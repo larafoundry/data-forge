@@ -18,7 +18,6 @@ final class DtoSchemaTest extends TestCase
         $schema = DtoSchemaCompiler::compile(SchemaFixtureDto::class);
 
         $this->assertSame(SchemaFixtureDto::class, $schema->class);
-        $this->assertSame(SchemaFixtureDto::class, $schema->reflection->getName());
         $this->assertSame(['children', 'displayName', 'name'], $schema->acceptedKeys());
         $this->assertSame(['name'], $schema->requiredKeys());
         $this->assertSame([
